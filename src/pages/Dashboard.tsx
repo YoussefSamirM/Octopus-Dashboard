@@ -12,7 +12,6 @@ const quickActions: QuickAction[] = [
   { label: 'Data', description: 'See all data like SLA, AHT, CHP, Occupancy, Utilization.', icon: LineChart, tab: 'data' },
   { label: 'Reports', description: 'Download all reports in professional way.', icon: BarChart2, tab: 'reports' },
   { label: 'Talabat Invoice', description: 'View and manage Talabat invoices.', icon: Receipt, tab: 'ic-view' },
-  { label: 'Legacy Engine', description: 'Original HTML Engine View.', icon: Receipt, tab: 'legacy-invoice' },
   { label: 'Octopus Overview', description: 'Enterprise workforce overview and operations.', icon: Network, tab: 'brightskies' },
   { label: 'Settings', description: 'Configure system settings.', icon: SettingsIcon, tab: 'settings' },
 ];

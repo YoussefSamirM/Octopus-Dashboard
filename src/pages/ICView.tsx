@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useInvoiceStore } from "../stores/invoiceStore";
 import ICMultiDayView from "../components/invoice/ICMultiDayView";
 import ICLobDaysView from "../components/invoice/ICLobDaysView";
@@ -19,13 +19,7 @@ const LOBs = [
   { id: "TMart-FU", title: "T-Mart Follow Up" },
 ];
 export default function ICView() {
-  const { globalProcessedData, loadFromServer, isLoading } = useInvoiceStore();
-  const [navState, setNavState] = useState<NavState>({
-    view: "home",
-    lobId: null,
-    date: null,
-    sk: null,
-  });
+  const { globalProcessedData, loadFromServer, isLoading, navState, setNavState } = useInvoiceStore();
 
   useEffect(() => {
     loadFromServer();
@@ -135,10 +129,8 @@ export default function ICView() {
       <div className="page-header mb-6 flex justify-between items-end">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <Receipt className="text-brand-600" size={24} />
             Talabat Invoice
           </h1>
-          <p className="page-description">Process and analyze Talabat agent metrics locally.</p>
         </div>
       </div>{" "}
       <div className="flex-1 flex flex-col relative w-full items-center justify-center">

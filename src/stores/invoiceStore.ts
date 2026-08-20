@@ -58,7 +58,14 @@ interface InvoiceState {
   currentShiftMode: ShiftMode;
   isLoading: boolean;
   error: string | null;
+  navState: {
+    view: "home" | "lob" | "interval" | "agents";
+    lobId: string | null;
+    date: string | null;
+    sk: number | null;
+  };
 
+  setNavState: (navState: Partial<InvoiceState['navState']>) => void;
   setShiftMode: (mode: ShiftMode) => void;
   parseStatusCSV: (file: File) => Promise<number>;
   processOfflineFiles: (startDate: string, endDate: string, reqFile: File, skillsFile: File, absFile: File) => Promise<void>;
@@ -182,7 +189,14 @@ export const useInvoiceStore = create<InvoiceState>()(
       currentShiftMode: 'std',
       isLoading: false,
       error: null,
+      navState: {
+        view: "home",
+        lobId: null,
+        date: null,
+        sk: null,
+      },
 
+      setNavState: (navState) => set((state) => ({ navState: { ...state.navState, ...navState } })),
       setShiftMode: (mode) => set({ currentShiftMode: mode }),
 
       clearData: () => set({
@@ -194,6 +208,12 @@ export const useInvoiceStore = create<InvoiceState>()(
         currentShiftMode: 'std',
         isLoading: false,
         error: null,
+        navState: {
+          view: "home",
+          lobId: null,
+          date: null,
+          sk: null,
+        },
       }),
 
       loadFromServer: async () => {
@@ -211,6 +231,7 @@ export const useInvoiceStore = create<InvoiceState>()(
              globalProcessedData: parsed.globalProcessedData || {},
              sortedDates: parsed.sortedDates || [],
              agentInfo: parsed.agentInfo || {},
+             rawStatusParsed: parsed.rawStatusParsed || [],
              isLoading: false 
            });
         } catch (e: any) {
@@ -252,7 +273,7 @@ export const useInvoiceStore = create<InvoiceState>()(
               if (st && en && !isNaN(st) && !isNaN(en) && status.includes('ONLINE') && en > st) {
                 if (st > maxMs) maxMs = st;
                 if (en > maxMs) maxMs = en;
-                const cleanEmail = String(emailRaw).toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                const cleanEmail = String(emailRaw).toLowerCase().trim();
                 tempLogs.push({ email: cleanEmail, start: st, end: en, status, name: cleanEmail });
               }
             });
@@ -354,7 +375,7 @@ export const useInvoiceStore = create<InvoiceState>()(
           for(let row = headerRowIdx + 1; row < sDataDisp.length; row++) {
               let email = sDataDisp[row][sfUserIdx];
               if(email) {
-                  let cleanEmail = email.toString().toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                  let cleanEmail = email.toString().toLowerCase().trim();
                   localAgentInfo[cleanEmail] = {
                       hr: hrIdx !== -1 ? sDataDisp[row][hrIdx] : '-',
                       name: nameIdx !== -1 ? sDataDisp[row][nameIdx] : cleanEmail,
@@ -585,7 +606,8 @@ export const useInvoiceStore = create<InvoiceState>()(
     globalProcessedData: state.globalProcessedData, 
     sortedDates: state.sortedDates, 
     agentInfo: state.agentInfo, 
-    currentShiftMode: state.currentShiftMode 
+    currentShiftMode: state.currentShiftMode,
+    navState: state.navState
   }),
 }
 ));

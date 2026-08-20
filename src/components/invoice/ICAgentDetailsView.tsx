@@ -100,83 +100,53 @@ export default function ICAgentDetailsView({
     <div className="max-w-[1550px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-[32px] gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-brand-50 rounded-lg border border-brand-100">
-              <Users className="text-brand-600" size={20} />
-            </div>
-            <h2 className="text-[28px] font-[900] text-surface-900 tracking-tight">
-              Interval Details
-            </h2>
-          </div>
+          <h2 className="text-[24px] font-[900] text-surface-900 mb-2">
+            Interval Details
+          </h2>
           <div className="flex items-center gap-2 text-surface-500 font-medium text-[14px]">
-            <span className="flex items-center gap-1.5 bg-surface-100 px-2.5 py-1 rounded-md text-surface-700">
-              <Target size={14} />
-              {LOBs.find((l) => l.id === lobId)?.title}
-            </span>
+            <span>{LOBs.find((l) => l.id === lobId)?.title}</span>
             <span>•</span>
-            <span className="flex items-center gap-1.5 bg-surface-100 px-2.5 py-1 rounded-md text-surface-700">
-              <Calendar size={14} />
-              {iso}
-            </span>
+            <span>{iso}</span>
             <span>•</span>
-            <span className="flex items-center gap-1.5 bg-brand-50 text-brand-700 border border-brand-200 px-2.5 py-1 rounded-md font-bold">
-              <Clock size={14} />
-              {lbl}
-            </span>
+            <span className="font-bold">{lbl}</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[20px] mb-[32px]">
-        <div className="bg-gradient-to-br from-surface-0 to-surface-50 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] relative overflow-hidden group hover:border-brand-300 transition-colors shadow-sm">
-          <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-transform">
-            <Target size={64} />
+        <div className="bg-surface-0 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] shadow-sm">
+          <div className="flex justify-between items-center text-[12px] font-[700] text-surface-500 uppercase">
+            <span>Interval REQ</span>
           </div>
-          <div className="flex items-center gap-2 text-[12px] font-[700] text-surface-500 uppercase tracking-wider">
-            <div className="w-2 h-2 rounded-full bg-surface-400" />
-            Interval REQ
-          </div>
-          <div className="text-[32px] font-[900] text-surface-900 tracking-tight">
+          <div className="text-[28px] font-[900] text-surface-900">
             {formatTimeSecs(intObj.req)}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-surface-0 to-surface-50 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] relative overflow-hidden group hover:border-brand-400 transition-colors shadow-sm">
-          <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-transform text-brand-600">
-            <CheckCircle size={64} />
+        <div className="bg-surface-0 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] shadow-sm">
+          <div className="flex justify-between items-center text-[12px] font-[700] text-surface-500 uppercase">
+            <span>Interval Actual</span>
           </div>
-          <div className="flex items-center gap-2 text-[12px] font-[700] text-brand-600 uppercase tracking-wider">
-            <div className="w-2 h-2 rounded-full bg-brand-500 shadow-[0_0_8px_rgba(var(--brand-500),0.6)]" />
-            Interval Actual
-          </div>
-          <div className="text-[32px] font-[900] text-surface-900 tracking-tight">
+          <div className="text-[28px] font-[900] text-surface-900">
             {formatTimeSecs(intObj.act)}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-surface-0 to-surface-50 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] relative overflow-hidden group hover:border-indigo-300 transition-colors shadow-sm">
-          <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-transform text-indigo-600">
-            <Users size={64} />
+        <div className="bg-surface-0 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] shadow-sm">
+          <div className="flex justify-between items-center text-[12px] font-[700] text-surface-500 uppercase">
+            <span>Agents Online</span>
           </div>
-          <div className="flex items-center gap-2 text-[12px] font-[700] text-indigo-600 uppercase tracking-wider">
-            <div className="w-2 h-2 rounded-full bg-indigo-500" />
-            Agents Online
-          </div>
-          <div className="text-[32px] font-[900] text-surface-900 tracking-tight">
+          <div className="text-[28px] font-[900] text-surface-900">
             {agentList.length}
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-surface-0 to-surface-50 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] relative overflow-hidden group hover:border-success-300 transition-colors shadow-sm">
-          <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:scale-110 transition-transform text-success-600">
-            <CheckCircle size={64} />
-          </div>
-          <div className="flex items-center gap-2 text-[12px] font-[700] text-success-600 uppercase tracking-wider">
-            <div className="w-2 h-2 rounded-full bg-success-500 shadow-[0_0_8px_rgba(var(--success-500),0.6)]" />
-            Actual IC%
+        <div className="bg-surface-0 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] shadow-sm">
+          <div className="flex justify-between items-center text-[12px] font-[700] text-surface-500 uppercase">
+            <span>Actual IC%</span>
           </div>
           <div
-            className={`text-[32px] font-[900] tracking-tight ${ic >= 100 ? "text-success-600" : "text-danger-500"}`}
+            className={`text-[28px] font-[900] ${ic >= 100 ? "text-success-600" : "text-danger-600"}`}
           >
             {formatPerc(ic)}
           </div>
@@ -246,16 +216,22 @@ export default function ICAgentDetailsView({
             <thead>
               <tr>
                 <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
-                  Agent Identity
+                  HR ID
                 </th>
                 <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
-                  Email (SF User)
+                  Name
                 </th>
                 <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
-                  Reporting
+                  Email
+                </th>
+                <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
+                  TL
+                </th>
+                <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
+                  SV
                 </th>
                 <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200 text-right">
-                  Online Duration
+                  Duration
                 </th>
               </tr>
             </thead>
@@ -274,36 +250,23 @@ export default function ICAgentDetailsView({
                     key={a.email}
                     className="hover:bg-brand-50/30 transition-colors group"
                   >
-                    <td className="px-[24px] py-[16px]">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-[600] text-[14px] text-surface-900 group-hover:text-brand-700 transition-colors">
-                          {a.name}
-                        </span>
-                        <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-surface-100 text-surface-600">
-                          {a.hr}
-                        </span>
-                      </div>
+                    <td className="px-[24px] py-[16px] text-[13px] text-surface-600 font-medium">
+                      {a.hr}
+                    </td>
+                    <td className="px-[24px] py-[16px] text-[14px] text-surface-900 font-[600] group-hover:text-brand-700 transition-colors">
+                      {a.name}
                     </td>
                     <td className="px-[24px] py-[16px] text-[13px] text-surface-600 font-medium">
                       {a.email}
                     </td>
-                    <td className="px-[24px] py-[16px]">
-                      <div className="flex flex-col gap-1 text-[13px]">
-                        <span className="text-surface-700 font-medium flex items-center gap-1.5">
-                          <UserCircle size={14} className="text-surface-400" />
-                          {a.tl}
-                        </span>
-                        <span className="text-surface-500 flex items-center gap-1.5">
-                          <ShieldAlert size={14} className="text-surface-400" />
-                          {a.osv}
-                        </span>
-                      </div>
+                    <td className="px-[24px] py-[16px] text-[13px] text-surface-700 font-medium">
+                      {a.tl}
                     </td>
-                    <td className="px-[24px] py-[16px] text-right">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-[700] font-mono bg-emerald-50 text-emerald-700 border border-emerald-100">
-                        <Clock size={14} />
-                        {formatTimeFromMs(a.durMs)}
-                      </span>
+                    <td className="px-[24px] py-[16px] text-[13px] text-surface-700 font-medium">
+                      {a.osv}
+                    </td>
+                    <td className="px-[24px] py-[16px] text-right font-[700] text-[13px] text-surface-900">
+                      {formatTimeFromMs(a.durMs)}
                     </td>
                   </tr>
                 ))

@@ -70,7 +70,8 @@ export default function AdminUpload() {
       const jsonPayload = JSON.stringify({
            globalProcessedData: storeState.globalProcessedData,
            sortedDates: storeState.sortedDates,
-           agentInfo: storeState.agentInfo
+           agentInfo: storeState.agentInfo,
+           rawStatusParsed: storeState.rawStatusParsed
       });
 
       const { error: uploadError } = await supabase.storage
