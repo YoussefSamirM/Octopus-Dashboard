@@ -113,14 +113,14 @@ export default function AdminUpload() {
             className="flex-1 px-4 py-3 border border-surface-200 rounded-[8px] bg-surface-50 outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-600/10 transition-all font-medium"
             onKeyDown={e => {
                if (e.key === 'Enter') {
-                  if (password === 'octopus2026') setIsUnlocked(true);
+                  if (password === '106528Oct@WFM') setIsUnlocked(true);
                   else addToast({ message: "Incorrect password", type: "error" });
                }
             }}
           />
           <button 
              onClick={() => { 
-                if (password === 'octopus2026') setIsUnlocked(true); 
+                if (password === '106528Oct@WFM') setIsUnlocked(true); 
                 else addToast({ message: "Incorrect password", type: "error" });
              }}
              className="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-[8px] font-[700] text-[14px] transition-all"

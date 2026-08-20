@@ -67,10 +67,10 @@ export default function ICAgentDetailsView({
     (a, b) => b.durMs - a.durMs,
   );
   const tls = Array.from(
-    new Set(agentList.map((a) => a.tl).filter((x) => x && x !== "-")),
+    new Set(agentList.filter(a => osvFilter === "" || a.osv === osvFilter).map((a) => a.tl).filter((x) => x && x !== "-")),
   ).sort();
   const osvs = Array.from(
-    new Set(agentList.map((a) => a.osv).filter((x) => x && x !== "-")),
+    new Set(agentList.filter(a => tlFilter === "" || a.tl === tlFilter).map((a) => a.osv).filter((x) => x && x !== "-")),
   ).sort();
   const filteredAgents = agentList.filter((a) => {
     const matchQ = (a.name + " " + a.email + " " + a.hr)
