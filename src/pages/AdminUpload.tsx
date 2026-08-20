@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useInvoiceStore } from "../stores/invoiceStore";
 import { useAppStore } from "../stores/appStore";
+import { supabase } from "../lib/supabase";
 
 export default function AdminUpload() {
   const [startDate, setStartDate] = useState(
@@ -64,24 +65,28 @@ export default function AdminUpload() {
          throw new Error("Processing failed, no data generated.");
       }
 
-      // 3. Push to server
+      // 3. Push to Supabase Storage
       setIsPushing(true);
-      const res = await fetch('/api/upload-invoice-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
+      const jsonPayload = JSON.stringify({
            globalProcessedData: storeState.globalProcessedData,
            sortedDates: storeState.sortedDates,
            agentInfo: storeState.agentInfo
-        })
       });
 
-      if (!res.ok) throw new Error("Failed to sync data to server");
-      
-      addToast({ message: "Invoice data successfully processed and synced to the server!", type: 'success' });
+      const { error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload('invoice_data.json', jsonPayload, { upsert: true, contentType: 'application/json' });
+
+      if (uploadError) throw new Error("Failed to upload data to Supabase Storage: " + uploadError.message);
+
+      // 4. Update the 'files' table to trigger real-time subscriptions for all connected clients
+      const { error: dbError } = await supabase
+        .from('files')
+        .upsert({ id: 'latest_upload', updated_at: new Date().toISOString() });
+
+      if (dbError) console.error("Warning: Could not trigger real-time update in files table.", dbError);
+
+      addToast({ message: "Invoice data successfully processed and synced to Supabase!", type: 'success' });
     } catch (err: any) {
       addToast({ message: err.message, type: 'error' });
     } finally {

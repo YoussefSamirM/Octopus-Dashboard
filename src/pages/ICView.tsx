@@ -5,6 +5,7 @@ import ICLobDaysView from "../components/invoice/ICLobDaysView";
 import ICDayDashboard from "../components/invoice/ICDayDashboard";
 import ICAgentDetailsView from "../components/invoice/ICAgentDetailsView";
 import { Receipt, Home, ChevronRight } from "lucide-react";
+import { supabase } from "../lib/supabase";
 interface NavState {
   view: "home" | "lob" | "interval" | "agents";
   lobId: string | null;
@@ -28,6 +29,22 @@ export default function ICView() {
 
   useEffect(() => {
     loadFromServer();
+
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'files' },
+        (payload) => {
+          console.log('Real-time data update received via Supabase:', payload);
+          loadFromServer();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const hasData = Object.keys(globalProcessedData).length > 0;

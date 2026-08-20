@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import { supabase } from '../lib/supabase';
 
 export type ShiftMode = 'std' | 'ovn';
 
@@ -198,17 +199,18 @@ export const useInvoiceStore = create<InvoiceState>()(
       loadFromServer: async () => {
         set({ isLoading: true, error: null });
         try {
-           const res = await fetch('/api/invoice-data');
-           if (!res.ok) throw new Error("Failed to fetch data from server");
-           const data = await res.json();
-           if (data.empty) {
+           const { data, error: downloadError } = await supabase.storage.from('uploads').download('invoice_data.json');
+           if (downloadError || !data) {
              set({ isLoading: false });
              return;
            }
+           const text = await data.text();
+           const parsed = JSON.parse(text);
+           
            set({ 
-             globalProcessedData: data.globalProcessedData || {},
-             sortedDates: data.sortedDates || [],
-             agentInfo: data.agentInfo || {},
+             globalProcessedData: parsed.globalProcessedData || {},
+             sortedDates: parsed.sortedDates || [],
+             agentInfo: parsed.agentInfo || {},
              isLoading: false 
            });
         } catch (e: any) {
