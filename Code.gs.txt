@@ -1,0 +1,256 @@
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+      .setTitle('WFM Enterprise Tracker')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function getICData(payload) {
+  try {
+    var params = JSON.parse(payload);
+    var dateTargets = params.dates.map(function(dStr) {
+      var dObj = new Date(dStr + "T00:00:00");
+      var mNames = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+      return {
+        iso: dStr,
+        y: dObj.getFullYear(),
+        m: dObj.getMonth(),
+        d: dObj.getDate(),
+        strMatch: new RegExp("(^|\\D)0?" + dObj.getDate() + "(?:st|nd|rd|th)?\\-?" + mNames[dObj.getMonth()], "i")
+      };
+    });
+
+    var finalReq = { "Combined": {}, "TPro": {}, "GHC": {}, "TMart-FU": {} };
+    var finalAtt = {};
+    var finalReskills = [];
+
+    Object.keys(finalReq).forEach(function(lob) {
+      dateTargets.forEach(function(dt) {
+        finalReq[lob][dt.iso] = {};
+        for(var k=0; k<=1410; k+=30) finalReq[lob][dt.iso][k] = {agents:0, hours:0};
+      });
+    });
+
+    // 1. Fetch ATT (Skill Matrix)
+    try {
+      var attSS = SpreadsheetApp.openById("1XTlvnlk7EXCDcZ-0XPLaZfT7oJddWAWUboxirbTebKU");
+      var allAttSheets = attSS.getSheets();
+      var skillSheet = null;
+      for(var i=0; i<allAttSheets.length; i++) {
+        if(allAttSheets[i].getName().toLowerCase().replace(/\s/g, '').indexOf('skill') > -1) {
+          skillSheet = allAttSheets[i]; break;
+        }
+      }
+      
+      if(skillSheet) {
+        var attDataDisp = skillSheet.getDataRange().getDisplayValues();
+        var attDataRaw = skillSheet.getDataRange().getValues();
+        var sfUserIdx = -1; var headerRowIdx = -1;
+        var dateColMap = {};
+
+        for(var r=0; r<Math.min(20, attDataDisp.length); r++) {
+          for(var c=0; c<attDataDisp[r].length; c++) {
+            var cell = attDataDisp[r][c].toString().toLowerCase().trim();
+            if(!cell) continue;
+
+            if(sfUserIdx === -1 && (cell === 'sf user' || cell.indexOf('email') > -1 || cell === 'agent_email')) {
+              sfUserIdx = c; if(headerRowIdx === -1) headerRowIdx = r;
+            }
+
+            dateTargets.forEach(function(dt) {
+              if(dateColMap[dt.iso] === undefined) {
+                if(dt.strMatch.test(cell)) {
+                  dateColMap[dt.iso] = c; if(headerRowIdx === -1) headerRowIdx = r;
+                } else {
+                  var rawVal = attDataRaw[r][c];
+                  if(Object.prototype.toString.call(rawVal) === '[object Date]' && !isNaN(rawVal.getTime())) {
+                    if(rawVal.getDate() === dt.d && rawVal.getMonth() === dt.m) {
+                      dateColMap[dt.iso] = c; if(headerRowIdx === -1) headerRowIdx = r;
+                    }
+                  }
+                }
+              }
+            });
+          }
+        }
+
+        if(sfUserIdx !== -1 && headerRowIdx !== -1) {
+          dateTargets.forEach(function(dt) {
+            var cIdx = dateColMap[dt.iso];
+            if(cIdx !== undefined) {
+              finalAtt[dt.iso] = {};
+              for(var row = headerRowIdx + 1; row < attDataDisp.length; row++) {
+                var email = attDataDisp[row][sfUserIdx];
+                var lob = attDataDisp[row][cIdx];
+                if(email && lob) {
+                  var cleanEmail = email.toString().toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                  var cleanLob = lob.toString().trim();
+                  if(cleanEmail && cleanLob && cleanLob !== '-') finalAtt[dt.iso][cleanEmail] = cleanLob;
+                }
+              }
+            }
+          });
+        }
+      }
+    } catch(e) {}
+
+    // 2. Fetch Reskilling
+    try {
+      var reskillSS = SpreadsheetApp.openById("1M-pl82UtPSNPvj76fB9kOzh20nbyt1UNER5_9unG9_A");
+      var reskillSheet = reskillSS.getSheetByName("Reskilling") || reskillSS.getSheets()[0];
+      if(reskillSheet) {
+        var rsDataDisp = reskillSheet.getDataRange().getDisplayValues();
+        var rsDataRaw = reskillSheet.getDataRange().getValues();
+        var rsHeaders = rsDataDisp[0].map(function(h){return h.toString().toLowerCase().trim();});
+        var mIdx = rsHeaders.indexOf("mail"), dIdx = rsHeaders.indexOf("date"), tIdx = rsHeaders.indexOf("skilled to");
+        var sIdx = rsHeaders.indexOf("start timestamp"), eIdx = rsHeaders.indexOf("end timestamp");
+
+        if(mIdx !== -1 && tIdx !== -1) {
+          for(var j=1; j<rsDataDisp.length; j++) {
+            var rDateStr = rsDataDisp[j][dIdx] ? rsDataDisp[j][dIdx].toString().toLowerCase().trim() : "";
+            dateTargets.forEach(function(dt) {
+              var isMatch = false;
+              if(dt.strMatch.test(rDateStr)) {
+                isMatch = true;
+              } else {
+                var rawVal = rsDataRaw[j][dIdx];
+                if(Object.prototype.toString.call(rawVal) === '[object Date]' && !isNaN(rawVal.getTime())) {
+                  if(rawVal.getDate() === dt.d && rawVal.getMonth() === dt.m) isMatch = true;
+                }
+              }
+              if(isMatch) {
+                var rsEmail = rsDataDisp[j][mIdx].toString().toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                if(rsEmail) {
+                  finalReskills.push({
+                    iso: dt.iso, emailKey: rsEmail, lob: rsDataDisp[j][tIdx].toString().trim(),
+                    startStr: rsDataDisp[j][sIdx]?rsDataDisp[j][sIdx].toString().trim():"", 
+                    endStr: rsDataDisp[j][eIdx]?rsDataDisp[j][eIdx].toString().trim():""
+                  });
+                }
+              }
+            });
+          }
+        }
+      }
+    } catch(e) {}
+
+    // 3. Fetch REQ from Source Sheet (Deduplicated System - Reads Hidden Sheets safely)
+    try {
+      var reqSS = SpreadsheetApp.openById("1BgHk0bV51MGGd4aB1gODOLSn_LuXG5vmVeVz1-nUEUY");
+      var reqSheets = reqSS.getSheets();
+      
+      // Tracking system: يمنع تكرار أي تاريخ لنفس القسم
+      var filledDates = { "delivery":{}, "pickup":{}, "fcr":{}, "support":{}, "tmart":{}, "tpro":{}, "ghc":{}, "tmartfu":{} };
+
+      for(var s=0; s<reqSheets.length; s++) {
+        var sheet = reqSheets[s];
+        
+        var sName = sheet.getName().toLowerCase().replace(/[\s\-]/g, '');
+        if(sName.indexOf("granted") > -1) continue; 
+        if(sName.indexOf("backup") > -1) continue; 
+        
+        var targetGroup = null;
+        var subLobId = "";
+        
+        if(sName.indexOf("tpro") > -1) { targetGroup = "TPro"; subLobId = "tpro"; }
+        else if(sName.indexOf("ghc") > -1) { targetGroup = "GHC"; subLobId = "ghc"; }
+        else if(sName.indexOf("tmart") > -1 && (sName.indexOf("followup") > -1 || sName.indexOf("fu") > -1)) { targetGroup = "TMart-FU"; subLobId = "tmartfu"; }
+        else if(sName.indexOf("delivery") > -1 || sName.indexOf("dp") > -1) { targetGroup = "Combined"; subLobId = "delivery"; }
+        else if(sName.indexOf("pickup") > -1) { targetGroup = "Combined"; subLobId = "pickup"; }
+        else if(sName.indexOf("fcr") > -1) { targetGroup = "Combined"; subLobId = "fcr"; }
+        else if(sName.indexOf("support") > -1 || sName.indexOf("nonpilot") > -1) { targetGroup = "Combined"; subLobId = "support"; }
+        else if(sName.indexOf("tmart") > -1) { targetGroup = "Combined"; subLobId = "tmart"; } 
+
+        if(!targetGroup) continue;
+
+        var maxCols = sheet.getLastColumn();
+        if(maxCols < 2) continue;
+
+        // للسرعة: قراءة أول 5 صفوف فقط للبحث عن العناوين قبل تحميل الشيت بالكامل
+        var scanRows = Math.min(5, sheet.getLastRow());
+        if(scanRows < 2) continue;
+        
+        var headerValsDisp = sheet.getRange(1, 1, scanRows, maxCols).getDisplayValues();
+        var headerValsRaw = sheet.getRange(1, 1, scanRows, maxCols).getValues();
+        var dateColMapReq = {}; 
+
+        for(var c=0; c<maxCols; c++) {
+          for(var r=0; r<scanRows; r++) {
+            var cell = headerValsDisp[r][c].toString().trim().toLowerCase();
+            if(!cell) continue;
+            
+            dateTargets.forEach(function(dt) {
+              if(dateColMapReq[dt.iso] === undefined) {
+                // لو التاريخ ده اتسحب قبل كده لنفس القسم، منتعبش نفسنا
+                if(filledDates[subLobId] && filledDates[subLobId][dt.iso]) return; 
+
+                var rawVal = headerValsRaw[r][c];
+                if(Object.prototype.toString.call(rawVal) === '[object Date]' && !isNaN(rawVal.getTime())) {
+                  if(rawVal.getDate() === dt.d && rawVal.getMonth() === dt.m) {
+                    dateColMapReq[dt.iso] = c;
+                  }
+                } else if(dt.strMatch.test(cell)) {
+                  dateColMapReq[dt.iso] = c;
+                }
+              }
+            });
+          }
+        }
+
+        // لو لقينا أي تواريخ مطلوبة في الشيت ده، نقرأه بالكامل
+        if(Object.keys(dateColMapReq).length > 0) {
+          // تسجيل التواريخ كـ "تم العثور عليها"
+          Object.keys(dateColMapReq).forEach(function(iso) {
+            filledDates[subLobId][iso] = true;
+          });
+
+          var lastRow = sheet.getLastRow();
+          var timesDisp = sheet.getRange(1, 1, lastRow, 1).getDisplayValues();
+          var timesRaw = sheet.getRange(1, 1, lastRow, 1).getValues();
+          var allHeadsData = sheet.getRange(1, 1, lastRow, maxCols).getDisplayValues();
+
+          for(var i=1; i<timesDisp.length; i++) {
+            var dispVal = timesDisp[i][0] ? timesDisp[i][0].toString().trim().toLowerCase() : "";
+            if(!dispVal || dispVal.indexOf('total') > -1) continue;
+
+            var rawT = timesRaw[i][0];
+            var h = -1, m = 0;
+
+            if(Object.prototype.toString.call(rawT) === '[object Date]' && !isNaN(rawT.getTime())) {
+              h = rawT.getHours(); m = rawT.getMinutes();
+            } else if(typeof rawT === 'number') {
+              var tm = Math.round(rawT * 24 * 60); h = Math.floor(tm / 60) % 24; m = tm % 60;
+            } else {
+              var isPM = dispVal.indexOf('pm') > -1, isAM = dispVal.indexOf('am') > -1;
+              var cleanTime = dispVal.split('-')[0].replace(/[^0-9:]/g, '');
+              var tParts = cleanTime.split(':');
+              if(tParts.length > 0 && tParts[0] !== '') {
+                h = parseInt(tParts[0], 10); m = tParts.length > 1 ? parseInt(tParts[1], 10) : 0;
+                if(isPM && h !== 12) h += 12; if(isAM && h === 12) h = 0;
+              }
+            }
+
+            if(h !== -1) {
+              var mR = m >= 30 ? 30 : 0;
+              var sortKey = (h * 60) + mR;
+
+              Object.keys(dateColMapReq).forEach(function(iso) {
+                var cIdx = dateColMapReq[iso];
+                var hRaw = allHeadsData[i][cIdx] ? allHeadsData[i][cIdx].toString().replace(/,/g, '').trim() : "";
+                var heads = parseFloat(hRaw);
+                if(!isNaN(heads) && heads > 0) {
+                  finalReq[targetGroup][iso][sortKey].agents += heads;
+                  finalReq[targetGroup][iso][sortKey].hours += (heads / 2.0);
+                }
+              });
+            }
+          }
+        }
+      }
+    } catch(e) {}
+
+    return JSON.stringify({ success: true, reqStd: finalReq, reskills: finalReskills, att: finalAtt });
+  } catch (err) {
+    return JSON.stringify({ success: false, error: err.toString() });
+  }
+}

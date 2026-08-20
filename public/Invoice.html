@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WFM Enterprise IC Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-main: #f8fafc; --surface: #ffffff; --text-main: #0f172a; --text-muted: #64748b;
+            --border: #e2e8f0; --primary: #0f172a; --accent: #2563eb; --success: #059669; --danger: #dc2626;
+            --tpro: #10b981; --ghc: #8b5cf6; --tmart: #ec4899;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); font-size: 13px; -webkit-font-smoothing: antialiased; }
+        .top-nav { background: var(--primary); padding: 18px 32px; color: #fff; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .top-nav h1 { font-size: 18px; margin: 0; display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -0.5px;}
+        .sys-badge { background: rgba(16,185,129,0.1); color: #10b981; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(16,185,129,0.2);}
+        .layout-container { max-width: 1500px; padding: 32px; margin: 0 auto; }
+        .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: flex; align-items: flex-end; gap: 24px; margin-bottom: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); flex-wrap: wrap; }
+        .filter-group { display: flex; flex-direction: column; gap: 10px; }
+        .filter-group label { font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        .input-wrap { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); height: 44px; padding: 0 16px; gap: 12px; transition: 0.2s; }
+        .input-wrap:focus-within { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+        .input-wrap input { border: none; font-size: 14px; font-weight: 700; color: var(--text-main); background: transparent; outline: none; width: 100%; cursor: pointer;}
+        .input-wrap i { color: var(--text-muted); }
+        .btn-upload { display: inline-flex; align-items: center; gap: 10px; padding: 0 24px; height: 44px; border: 1px dashed var(--border); border-radius: 8px; background: var(--surface); font-weight: 700; color: var(--primary); cursor: pointer; transition: 0.2s; }
+        .btn-upload:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff;}
+        .btn-upload.success { border: 1px solid var(--success); color: var(--success); background: #ecfdf5; }
+        .btn-primary { padding: 0 32px; height: 44px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: 0.2s; box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+        .btn-primary:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37,99,235,0.3); }
+        .dashboard-grid { display: grid; grid-template-columns: 240px 1fr; gap: 32px; }
+        .sidebar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); height: fit-content; position: sticky; top: 24px; }
+        .nav-item { padding: 14px 16px; border-radius: 8px; font-weight: 700; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 14px; margin-bottom: 6px; transition: 0.2s; }
+        .nav-item i { width: 18px; text-align: center; font-size: 16px; }
+        .nav-item:hover { background: var(--bg-main); color: var(--primary); }
+        .nav-item.active { background: var(--primary); color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .nav-item.ic-special { background: #eff6ff; color: var(--accent); border: 1px solid #bfdbfe; margin-top: 24px; margin-bottom: 24px; }
+        .nav-item.ic-special.active { background: var(--accent); color: #fff; border-color: var(--accent);}
+        .content-area { display: none; }
+        .content-area.active { display: block; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 10px; transition: 0.2s; border-top: 4px solid var(--border);}
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
+        .kpi-title { font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        .kpi-val { font-size: 32px; font-weight: 900; color: var(--primary); letter-spacing: -1px; }
+        .table-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 16px 20px; font-size: 13px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        th { background: #f8fafc; font-weight: 800; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        tr:hover td { background: #f8fafc; }
+        .row-total { background: #f1f5f9; font-weight: 800; border-top: 2px solid var(--border); }
+        .val-bold { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .val-success { color: var(--success); font-weight: 800; }
+        .val-danger { color: var(--danger); font-weight: 800; }
+        .val-accent { color: var(--accent); font-weight: 800; }
+        .error-banner { display: none; background: #fef2f2; color: var(--danger); padding: 16px; font-weight: 700; font-size: 14px; align-items: center; justify-content: center; gap: 10px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #fecaca; }
+        #pageLoader { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);}
+        .section-header h2 { font-size: 24px; font-weight: 900; color: var(--primary); letter-spacing: -0.5px;}
+        .mode-toggle { display: flex; background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 4px; gap: 4px; }
+        .mode-btn { padding: 10px 20px; font-size: 13px; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .mode-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .action-link { color: var(--accent); font-weight: 700; cursor: pointer; text-decoration: none; background: none; border: none; padding: 6px 12px; border-radius: 6px; transition: 0.2s;}
+        .action-link:hover { background: #eff6ff; }
+        .back-btn { padding: 10px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-weight: 800; color: var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 10px; margin-bottom: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s;}
+        .back-btn:hover { background: var(--bg-main); transform: translateX(-4px); }
+        .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .chart-box h3 { font-size: 14px; font-weight: 800; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;}
+    </style>
+</head>
+<body>
+    <div id="pageLoader" style="display: none;">
+        <div class="spinner"></div>
+        <div id="loaderText" style="font-weight: 800; color: var(--primary); font-size: 16px;">Analyzing Enterprise Workspace...</div>
+    </div>
+    
+    <div class="top-nav">
+        <h1><i class="fa-solid fa-chess-knight" style="color: #60a5fa;"></i> WFM Enterprise Master</h1>
+        <div class="sys-badge"><i class="fa-solid fa-satellite-dish"></i> Connected</div>
+    </div>
+
+    <div class="layout-container">
+        <div class="error-banner" id="errorBanner">
+            <i class="fa-solid fa-triangle-exclamation"></i> <span id="errorText"></span>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-group">
+                <label>Agent Status Data</label>
+                <button class="btn-upload" id="btnStatus" onclick="document.getElementById('inputStatus').click()">
+                    <i class="fa-solid fa-file-csv"></i> <span id="btnStatusText">Upload Master Log</span>
+                </button>
+                <input type="file" id="inputStatus" accept=".csv" style="display:none;">
+            </div>
+            <div class="filter-group">
+                <label>Start Date</label>
+                <div class="input-wrap" style="width: 170px;"><i class="fa-solid fa-calendar-day"></i><input type="date" id="startDate"></div>
+            </div>
+            <div class="filter-group">
+                <label>End Date (Optional)</label>
+                <div class="input-wrap" style="width: 170px;"><i class="fa-regular fa-calendar-check"></i><input type="date" id="endDate"></div>
+            </div>
+            <div style="flex-grow: 1; display: flex; justify-content: flex-end;">
+                <button class="btn-primary" onclick="runAnalysis()" id="calcBtn"><i class="fa-solid fa-bolt"></i> Process Intelligence</button>
+            </div>
+        </div>
+
+        <div id="view-empty" style="text-align: center; padding: 120px 20px; color: var(--text-muted);">
+            <i class="fa-solid fa-layer-group" style="font-size: 64px; color: var(--border); margin-bottom: 24px;"></i>
+            <h3 style="font-size: 24px; font-weight: 900; color: var(--primary); margin-bottom: 12px; letter-spacing: -0.5px;">Professional Workspace Ready</h3>
+            <p style="font-size: 15px; max-width: 500px; margin: 0 auto; line-height: 1.6;">Upload the Agent Status CSV and select your target dates. Leave End Date empty to automatically process all available logs.</p>
+        </div>
+
+        <div id="view-all-days" style="display:none;">
+            <div class="section-header">
+                <h2>Multi-Day Aggregation</h2>
+            </div>
+            <div class="kpi-grid" id="masterKpis"></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Total REQ</th>
+                            <th>Total Actual</th>
+                            <th>Total SCH (Productive)</th>
+                            <th>Total Billable</th>
+                            <th>Overall IC %</th>
+                            <th>Overage</th>
+                            <th>Shortage</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allDaysTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="dashboardView" style="display: none;">
+            <button class="back-btn" onclick="showAllDaysView()"><i class="fa-solid fa-arrow-left"></i> Back to Master View</button>
+            <div class="section-header">
+                <h2 id="reportTitle">Report for </h2>
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="btn-std" onclick="switchShiftMode('std')"><i class="fa-regular fa-clock"></i> Standard Day</button>
+                    <button class="mode-btn" id="btn-ovn" onclick="switchShiftMode('ovn')"><i class="fa-solid fa-moon"></i> 8-to-8 Shift</button>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="sidebar">
+                    <div style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px; padding-left: 16px;">Executive Views</div>
+                    <div class="nav-item active" onclick="switchTab('overview', this)"><i class="fa-solid fa-table-cells-large"></i> Daily Overview</div>
+                    <div class="nav-item ic-special" onclick="switchTab('icView', this)"><i class="fa-solid fa-chess-board"></i> True IC (Comb+TPro)</div>
+                    <div style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin: 32px 0 16px 16px;">LOB Deep Dive</div>
+                    <div class="nav-item" onclick="switchTab('lob-Combined', this)"><i class="fa-solid fa-layer-group" style="color: var(--accent);"></i> Combined</div>
+                    <div class="nav-item" onclick="switchTab('lob-TPro', this)"><i class="fa-solid fa-headset" style="color: var(--tpro);"></i> T-Pro</div>
+                    <div class="nav-item" onclick="switchTab('lob-GHC', this)"><i class="fa-solid fa-notes-medical" style="color: var(--ghc);"></i> GHC</div>
+                    <div class="nav-item" onclick="switchTab('lob-TMart-FU', this)"><i class="fa-solid fa-cart-shopping" style="color: var(--tmart);"></i> T-Mart FU</div>
+                </div>
+
+                <div class="main-content">
+                    <div id="tab-overview" class="content-area active">
+                        <div class="kpi-grid" id="dayKpis"></div>
+                        <div class="charts-grid">
+                            <div class="chart-box"><h3>Hours Distribution</h3><div style="position: relative; height: 220px; width: 100%;"><canvas id="barChart"></canvas></div></div>
+                            <div class="chart-box"><h3>IC Performance</h3><div style="position: relative; height: 220px; width: 100%;"><canvas id="doughnutChart"></canvas></div></div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <!-- الترتيب الجديد اللي طلبته بالمسطرة -->
+                                    <tr>
+                                        <th>LOB</th>
+                                        <th>REQ Hrs</th>
+                                        <th>Actual Hrs</th>
+                                        <th>ABS %</th>
+                                        <th>ABS Hrs</th>
+                                        <th>Prod. SCH</th>
+                                        <th>Total SCH</th>
+                                        <th>Billable</th>
+                                        <th>IC %</th>
+                                        <th>Lost</th>
+                                        <th>Overage</th>
+                                        <th>Overage %</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="overviewTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="tab-icView" class="content-area">
+                        <div class="kpi-grid" id="icKpis"></div>
+                        <div class="table-wrapper" id="icIntervals"></div>
+                    </div>
+
+                    <div id="tab-lob-Combined" class="content-area"><div id="lobContent-Combined"></div></div>
+                    <div id="tab-lob-TPro" class="content-area"><div id="lobContent-TPro"></div></div>
+                    <div id="tab-lob-GHC" class="content-area"><div id="lobContent-GHC"></div></div>
+                    <div id="tab-lob-TMart-FU" class="content-area"><div id="lobContent-TMart-FU"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rawStatusParsed = []; 
+        let rawBackendRes = null;
+        let globalProcessedData = null;
+        let currentShiftMode = 'std';
+        let sortedDates = [];
+        let maxObservedMs = 0;
+        let barChartInstance = null;
+        let doughnutChartInstance = null;
+
+        const LOBs = [
+            { id: 'Combined', title: 'Combined', color: 'var(--accent)' },
+            { id: 'TPro', title: 'T-Pro', color: 'var(--tpro)' },
+            { id: 'GHC', title: 'GHC', color: 'var(--ghc)' },
+            { id: 'TMart-FU', title: 'T-Mart FU', color: 'var(--tmart)' }
+        ];
+
+        document.getElementById('startDate').valueAsDate = new Date();
+
+        function displayError(msg) {
+            document.getElementById('errorText').textContent = msg;
+            document.getElementById('errorBanner').style.display = 'flex';
+            setTimeout(() => document.getElementById('errorBanner').style.display = 'none', 8000);
+        }
+
+        function csvToArray(strData) {
+            var p = new RegExp(("(\\,|\\r?\\n|\\r|^)(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^\"\\,\\r\\n]*))"), "gi");
+            var a = [[]], m = null;
+            while (m = p.exec(strData)) {
+                if (m[1].length && m[1] !== ",") a.push([]);
+                var v = m[2] ? m[2].replace(new RegExp("\"\"", "g"), "\"") : m[3];
+                a[a.length - 1].push(v);
+            }
+            if (a.length > 0 && a[a.length-1].length === 1 && a[a.length-1][0] === "") a.pop();
+            return a;
+        }
+
+        function groupLOB(raw) {
+            if (!raw) return "Unknown LOB";
+            let l = String(raw).toLowerCase().trim().replace(/[\s\-\_\.]/g, '');
+            if (l.includes('supportnonpilot') || l.includes('supportnonpolit') || l.includes('nonpilot') || l.includes('support')) return "Combined";
+            if (l.includes('tmart') && (l.includes('followup') || l.includes('fu'))) return "TMart-FU";
+            if (l.includes('tmart') || l.includes('fcr') || l.includes('delivery') || l.includes('pickup') || l.includes('dp')) return "Combined";
+            if (l.includes('tpro')) return "TPro";
+            if (l.includes('ghc')) return "GHC";
+            return String(raw).trim(); 
+        }
+
+        document.getElementById('inputStatus').addEventListener('change', function(e) {
+            if (!e.target.files.length) return;
+            let file = e.target.files[0];
+            let btnText = document.getElementById('btnStatusText');
+            btnText.innerText = "Parsing Data...";
+            
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    let data = csvToArray(evt.target.result);
+                    if (data.length < 2) { displayError("Status CSV is empty."); return; }
+                    
+                    let headers = data[0].map(h => h ? String(h).trim().toLowerCase() : '');
+                    let eIdx = headers.findIndex(h => h === 'agent_email' || h === 'email' || h.includes('email'));
+                    let sIdx = headers.findIndex(h => h === 'status');
+                    let startIdx = headers.findIndex(h => h === 'date' || h === 'start' || h.includes('start'));
+                    let endIdx = headers.findIndex(h => h === 'end_timestamp' || h === 'end' || h.includes('end'));
+
+                    if (eIdx === -1 || startIdx === -1 || sIdx === -1) { displayError("Missing Columns in CSV."); return; }
+
+                    let tempLogs = [];
+                    maxObservedMs = 0;
+                    for(let i=1; i<data.length; i++) {
+                        let row = data[i];
+                        if(!row || row.length <= eIdx || !row[eIdx]) continue;
+                        let status = row[sIdx] ? String(row[sIdx]).toUpperCase().trim() : '';
+                        let st = row[startIdx] ? new Date(row[startIdx].replace(/"/g, '')).getTime() : null;
+                        let en = row[endIdx] && row[endIdx].trim() !== '' ? new Date(row[endIdx].replace(/"/g, '')).getTime() : new Date().getTime();
+                        if(st && st > maxObservedMs) maxObservedMs = st;
+                        if(en && en > maxObservedMs) maxObservedMs = en;
+                        
+                        if (st && en && !isNaN(st) && !isNaN(en) && status.includes('ONLINE') && en > st) {
+                            let cleanEmail = row[eIdx].toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                            tempLogs.push({ email: cleanEmail, start: st, end: en });
+                        }
+                    }
+
+                    let agentGroups = {};
+                    tempLogs.forEach(log => {
+                        if(!agentGroups[log.email]) agentGroups[log.email] = [];
+                        agentGroups[log.email].push(log);
+                    });
+
+                    rawStatusParsed = [];
+                    Object.keys(agentGroups).forEach(email => {
+                        let logs = agentGroups[email].sort((a, b) => a.start - b.start);
+                        let merged = [logs[0]];
+                        for (let i = 1; i < logs.length; i++) {
+                            let curr = logs[i];
+                            let last = merged[merged.length - 1];
+                            if (curr.start <= last.end) { last.end = Math.max(last.end, curr.end); } 
+                            else { merged.push(curr); }
+                        }
+                        merged.forEach(m => rawStatusParsed.push(m));
+                    });
+
+                    document.getElementById('btnStatus').classList.add('success'); 
+                    btnText.innerText = "Logs: " + rawStatusParsed.length;
+                } catch(err) { displayError("Error reading Status CSV."); }
+            };
+            reader.readAsText(file, "UTF-8");
+        });
+
+        function formatTime(dh) {
+            if (!dh || dh <= 0) return "0:00:00";
+            let h = Math.floor(dh), rem = dh - h, ts = Math.round(rem * 3600);
+            let m = Math.floor(ts / 60), s = ts % 60;
+            if (m >= 60) { h++; m -= 60; }
+            return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatPerc(val) { return (val || 0).toFixed(2) + "%"; }
+
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        function switchShiftMode(mode) {
+            currentShiftMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + mode).classList.add('active');
+            if(rawBackendRes) renderDashboardDay(document.getElementById('reportTitle').innerText.replace('Report for ', ''));
+        }
+
+        function showAllDaysView() {
+            document.getElementById('dashboardView').style.display = 'none';
+            document.getElementById('view-all-days').style.display = 'block';
+        }
+
+        function getDatesInRange(sDateStr, eDateStr) {
+            let dates = [];
+            let curr = new Date(sDateStr + "T00:00:00");
+            let endStr = eDateStr;
+            if(!endStr && maxObservedMs > 0) endStr = new Date(maxObservedMs).toISOString().split('T')[0];
+            if(!endStr) endStr = sDateStr;
+            let end = new Date(endStr + "T00:00:00");
+            end.setDate(end.getDate() + 1); 
+            while(curr <= end) {
+                let y = curr.getFullYear(), m = String(curr.getMonth()+1).padStart(2,'0'), d = String(curr.getDate()).padStart(2,'0');
+                dates.push(`${y}-${m}-${d}`);
+                curr.setDate(curr.getDate() + 1);
+            }
+            return dates;
+        }
+
+        function runAnalysis() {
+            if (rawStatusParsed.length === 0) { displayError("Please upload the Agent Status CSV!"); return; }
+            let sDate = document.getElementById('startDate').value;
+            let eDate = document.getElementById('endDate').value;
+            if(!sDate) { displayError("Please select a Start Date."); return; }
+
+            let reqDates = getDatesInRange(sDate, eDate);
+
+            document.getElementById('pageLoader').style.display = 'flex';
+            document.getElementById('calcBtn').disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function(response) {
+                    document.getElementById('pageLoader').style.display = 'none';
+                    document.getElementById('calcBtn').disabled = false;
+                    try {
+                        let res = JSON.parse(response);
+                        if(res.success) {
+                            rawBackendRes = res;
+                            processData(reqDates);
+                            document.getElementById('view-empty').style.display = 'none';
+                            renderAllDays();
+                            document.getElementById('view-all-days').style.display = 'block';
+                        } else { displayError("Backend Error: " + res.error); }
+                    } catch(e) { displayError("Failed to parse response."); }
+                })
+                .withFailureHandler(function() {
+                    document.getElementById('pageLoader').style.display = 'none';
+                    document.getElementById('calcBtn').disabled = false;
+                    displayError("Network connection failed.");
+                })
+                .getICData(JSON.stringify({ dates: reqDates }));
+        }
+
+        function processData(reqDates) {
+            globalProcessedData = {};
+            sortedDates = [];
+            for(let i=0; i<reqDates.length - 1; i++) {
+                let dIso = reqDates[i];
+                sortedDates.push(dIso);
+                globalProcessedData[dIso] = { std: computeShift(dIso, 'std'), ovn: computeShift(dIso, 'ovn') };
+            }
+        }
+
+        function computeShift(baseIso, mode) {
+            let reqStd = rawBackendRes.reqStd, reskillList = rawBackendRes.reskills, attMap = rawBackendRes.att;
+            let dStats = rawBackendRes.dStats ? (rawBackendRes.dStats[baseIso] || {}) : {};
+            let actualMap = {}; 
+            let intervals = [];
+            
+            let dt = new Date(baseIso + "T00:00:00");
+            dt.setDate(dt.getDate() + 1);
+            let y = dt.getFullYear(), mo = String(dt.getMonth()+1).padStart(2,'0'), dy = String(dt.getDate()).padStart(2,'0');
+            let nextIso = `${y}-${mo}-${dy}`;
+
+            if (mode === 'std') {
+                for(let k=0; k<=1410; k+=30) intervals.push({ iso: baseIso, sk: k, startMs: new Date(baseIso + "T00:00:00").getTime() + (k*60000) });
+            } else {
+                for(let k=480; k<=1410; k+=30) intervals.push({ iso: baseIso, sk: k, startMs: new Date(baseIso + "T00:00:00").getTime() + (k*60000) });
+                for(let k=0; k<=450; k+=30) intervals.push({ iso: nextIso, sk: k, startMs: new Date(nextIso + "T00:00:00").getTime() + (k*60000) });
+            }
+
+            let globalStartMs = intervals[0].startMs;
+            let globalEndMs = intervals[intervals.length-1].startMs + 1800000;
+
+            let parseMins = (str) => {
+                if (!str || str === "") return 0;
+                let pd = new Date(str); if (!isNaN(pd.getTime())) return pd.getHours() * 60 + pd.getMinutes();
+                let s = String(str).toLowerCase().trim();
+                let isPM = s.includes('pm'), isAM = s.includes('am');
+                let tm = s.replace(/[^0-9:]/g, '').split(':');
+                if (tm.length > 0 && tm[0] !== '') {
+                    let th = parseInt(tm[0], 10), tmins = tm.length > 1 ? parseInt(tm[1], 10) : 0;
+                    if (isPM && th !== 12) th += 12; if (isAM && th === 12) th = 0;
+                    return th * 60 + tmins;
+                }
+                return 0;
+            };
+
+            let getEffectiveLOB = (email, iso, mins) => {
+                let overrides = reskillList.filter(r => r.emailKey === email && r.iso === iso);
+                for(let i=0; i<overrides.length; i++) {
+                    let r = overrides[i];
+                    let sm = parseMins(r.startStr), em = r.endStr ? parseMins(r.endStr) : 1440;
+                    if (sm > em) { if (mins >= sm || mins <= em) return groupLOB(r.lob); } 
+                    else { if (mins >= sm && mins <= em) return groupLOB(r.lob); }
+                }
+                if (attMap[iso] && attMap[iso][email]) return groupLOB(attMap[iso][email]);
+                return "Unknown LOB"; 
+            };
+
+            rawStatusParsed.forEach(log => {
+                if (log.end <= globalStartMs || log.start >= globalEndMs) return;
+                let current = Math.max(log.start, globalStartMs);
+                let stopTime = Math.min(log.end, globalEndMs);
+
+                while(current < stopTime) {
+                    let dd = new Date(current);
+                    let hh = dd.getHours(), mm = dd.getMinutes(), mR = mm >= 30 ? 30 : 0;
+                    let nx = new Date(dd);
+                    if (mR === 0) nx.setMinutes(30, 0, 0, 0); else nx.setHours(hh + 1, 0, 0, 0);
+
+                    let cEnd = Math.min(stopTime, nx.getTime());
+                    let dur = (cEnd - current) / 3600000;
+                    
+                    let yr = dd.getFullYear(), mt = String(dd.getMonth()+1).padStart(2,'0'), dte = String(dd.getDate()).padStart(2,'0');
+                    let localIso = `${yr}-${mt}-${dte}`;
+                    
+                    let sk = (hh * 60) + mR;
+                    let lob = getEffectiveLOB(log.email, localIso, (hh * 60) + mm);
+
+                    if (lob !== 'Unknown LOB') {
+                        if(!actualMap[lob]) actualMap[lob] = {};
+                        if(!actualMap[lob][localIso]) actualMap[lob][localIso] = {};
+                        if(!actualMap[lob][localIso][sk]) actualMap[lob][localIso][sk] = 0;
+                        actualMap[lob][localIso][sk] += dur;
+                    }
+                    current = cEnd;
+                }
+            });
+
+            let summary = {
+                'Combined': { req: 0, act: 0, bill: 0, over: 0, lost: 0, sch: 0, abs: 0, html: '' },
+                'TPro': { req: 0, act: 0, bill: 0, over: 0, lost: 0, sch: 0, abs: 0, html: '' },
+                'GHC': { req: 0, act: 0, bill: 0, over: 0, lost: 0, sch: 0, abs: 0, html: '' },
+                'TMart-FU': { req: 0, act: 0, bill: 0, over: 0, lost: 0, sch: 0, abs: 0, html: '' },
+                'Total': { req: 0, act: 0, bill: 0, over: 0, lost: 0, sch: 0, abs: 0 },
+                'ICView': { req: 0, act: 0, bill: 0, over: 0, lost: 0, html: '' }
+            };
+
+            LOBs.forEach(lobConf => {
+                let lob = lobConf.id;
+                let rows = '';
+                
+                let stats = dStats[lob] || { hc: 0, abs: 0 };
+                summary[lob].sch = stats.hc;
+                summary[lob].abs = stats.abs;
+
+                intervals.forEach(chk => {
+                    let rH = (reqStd[lob] && reqStd[lob][chk.iso] && reqStd[lob][chk.iso][chk.sk]) ? reqStd[lob][chk.iso][chk.sk].hours : 0;
+                    let aH = (actualMap[lob] && actualMap[lob][chk.iso] && actualMap[lob][chk.iso][chk.sk]) ? actualMap[lob][chk.iso][chk.sk] : 0;
+                    let bH = Math.min(aH, rH);
+                    
+                    if (rH > 0 || aH > 0) {
+                        summary[lob].req += rH; summary[lob].act += aH; summary[lob].bill += bH;
+                        summary[lob].over += (aH > rH ? aH - rH : 0); summary[lob].lost += (rH > aH ? rH - aH : 0);
+                        
+                        let hR = Math.floor(chk.sk / 60), mR = chk.sk % 60;
+                        let lbl = `${hR}:${mR === 0 ? '00' : '30'}`;
+                        let isPass = aH >= rH;
+                        let icP = rH === 0 ? 100 : (aH / rH) * 100;
+
+                        rows += `<tr>
+                            <td class="val-bold">${chk.iso} ${lbl}</td>
+                            <td class="val-bold">${formatTime(rH)}</td>
+                            <td class="val-bold">${formatTime(aH)}</td>
+                            <td class="val-accent">${formatTime(bH)}</td>
+                            <td class="${isPass ? 'val-success' : 'val-danger'}">${isPass ? 'PASS' : 'FAIL'}</td> 
+                            <td class="${isPass ? 'val-success' : 'val-danger'}">${formatPerc(icP)}</td>
+                            <td class="val-success">${formatTime(aH > rH ? aH - rH : 0)}</td>
+                            <td class="val-danger">${formatTime(rH > aH ? rH - aH : 0)}</td>
+                        </tr>`;
+                    }
+                });
+
+                summary.Total.req += summary[lob].req; summary.Total.act += summary[lob].act; summary.Total.bill += summary[lob].bill;
+                summary.Total.over += summary[lob].over; summary.Total.lost += summary[lob].lost;
+                summary.Total.sch += summary[lob].sch; summary.Total.abs += summary[lob].abs;
+
+                summary[lob].html = `<table><thead><tr><th>Date & Time</th><th>REQ Hrs</th><th>Actual</th><th>Billable</th><th>Status</th><th>IC %</th><th>Overage</th><th>Shortage</th></tr></thead>
+                    <tbody>${rows !== '' ? rows : '<tr><td colspan="8" style="text-align:center;">No Data for this LOB</td></tr>'}</tbody></table>`;
+            });
+
+            // IC View Logic
+            let icRows = '';
+            intervals.forEach(chk => {
+                let reqC = (reqStd['Combined'] && reqStd['Combined'][chk.iso] && reqStd['Combined'][chk.iso][chk.sk]) ? reqStd['Combined'][chk.iso][chk.sk].hours : 0;
+                let actC = (actualMap['Combined'] && actualMap['Combined'][chk.iso] && actualMap['Combined'][chk.iso][chk.sk]) ? actualMap['Combined'][chk.iso][chk.sk] : 0;
+                let billC = Math.min(actC, reqC);
+
+                let reqT = (reqStd['TPro'] && reqStd['TPro'][chk.iso] && reqStd['TPro'][chk.iso][chk.sk]) ? reqStd['TPro'][chk.iso][chk.sk].hours : 0;
+                let actT = (actualMap['TPro'] && actualMap['TPro'][chk.iso] && actualMap['TPro'][chk.iso][chk.sk]) ? actualMap['TPro'][chk.iso][chk.sk] : 0;
+                let billT = Math.min(actT, reqT);
+
+                let totalReq = reqC + reqT;
+                let totalAct = actC + actT;
+                let totalBill = billC + billT; 
+
+                if(totalReq > 0 || totalAct > 0) {
+                    summary.ICView.req += totalReq; summary.ICView.act += totalAct; summary.ICView.bill += totalBill;
+                    let over = totalAct > totalReq ? totalAct - totalReq : 0;
+                    let shrt = totalReq > totalAct ? totalReq - totalAct : 0;
+                    summary.ICView.over += over; summary.ICView.lost += shrt;
+
+                    let hR = Math.floor(chk.sk / 60), mR = chk.sk % 60;
+                    let lbl = `${hR}:${mR === 0 ? '00' : '30'}`;
+                    let isPass = totalAct >= totalReq;
+                    let icP = totalReq === 0 ? 100 : (totalAct / totalReq) * 100;
+
+                    icRows += `<tr>
+                        <td class="val-bold">${chk.iso} ${lbl}</td>
+                        <td class="val-bold">${formatTime(totalReq)}</td>
+                        <td class="val-bold">${formatTime(totalAct)}</td>
+                        <td class="val-accent">${formatTime(totalBill)}</td>
+                        <td class="${isPass ? 'val-success' : 'val-danger'}">${isPass ? 'PASS' : 'FAIL'}</td> 
+                        <td class="${isPass ? 'val-success' : 'val-danger'}">${formatPerc(icP)}</td>
+                        <td class="val-success">${formatTime(over)}</td>
+                        <td class="val-danger">${formatTime(shrt)}</td>
+                    </tr>`;
+                }
+            });
+            summary.ICView.html = `<table><thead><tr><th>Date & Time</th><th>Sum REQ</th><th>Sum Actual</th><th>Sum Billable</th><th>Status</th><th>IC %</th><th>Overage</th><th>Shortage</th></tr></thead><tbody>${icRows !== '' ? icRows : '<tr><td colspan="8" style="text-align:center;">No Data</td></tr>'}</tbody></table>`;
+
+            return summary;
+        }
+
+        function renderAllDays() {
+            let tbody = document.getElementById('allDaysTable');
+            tbody.innerHTML = '';
+            let mReq = 0, mAct = 0, mBill = 0, mSch = 0;
+
+            sortedDates.forEach(dIso => {
+                let t = globalProcessedData[dIso].std.Total; 
+                mReq += t.req; mAct += t.act; mBill += t.bill; mSch += t.sch;
+                let ic = t.req === 0 ? (t.act > 0 ? 100 : 0) : (t.bill / t.req) * 100;
+                let schHrs = t.sch * 0.89;
+
+                tbody.innerHTML += `<tr>
+                    <td style="font-weight:800;">${dIso}</td>
+                    <td class="val-bold">${formatTime(t.req)}</td>
+                    <td class="val-bold">${formatTime(t.act)}</td>
+                    <td class="val-bold" style="color:var(--text-muted)">${formatTime(schHrs)}</td>
+                    <td class="val-accent">${formatTime(t.bill)}</td>
+                    <td class="${ic >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(ic)}</td>
+                    <td class="val-success">${formatTime(t.over)}</td>
+                    <td class="val-danger">${formatTime(t.lost)}</td>
+                    <td><button class="action-link" onclick="openDayDetail('${dIso}')">View Detailed Shift</button></td>
+                </tr>`;
+            });
+
+            let mIc = mReq === 0 ? 0 : (mBill / mReq) * 100;
+            document.getElementById('masterKpis').innerHTML = `
+                <div class="kpi-card" style="border-top-color:var(--text-muted)"><div class="kpi-title">Global SCH</div><div class="kpi-val">${formatTime(mSch * 0.89)}</div></div>
+                <div class="kpi-card" style="border-top-color:var(--tpro)"><div class="kpi-title">Global REQ</div><div class="kpi-val">${formatTime(mReq)}</div></div>
+                <div class="kpi-card" style="border-top-color:var(--accent)"><div class="kpi-title">Global Billable</div><div class="kpi-val val-success">${formatTime(mBill)}</div></div>
+                <div class="kpi-card" style="border-top-color:var(--success)"><div class="kpi-title">Global IC%</div><div class="kpi-val ${mIc >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(mIc)}</div></div>
+            `;
+        }
+
+        function openDayDetail(dIso) {
+            document.getElementById('view-all-days').style.display = 'none';
+            document.getElementById('dashboardView').style.display = 'block';
+            document.getElementById('reportTitle').innerText = "Report for " + dIso;
+            renderDashboardDay(dIso);
+        }
+
+        function renderDashboardDay(dIso) {
+            let d = globalProcessedData[dIso][currentShiftMode];
+            let t = d.Total;
+
+            let mIc = t.req === 0 ? (t.act > 0 ? 100 : 0) : (t.bill / t.req) * 100;
+            let tSchHrs = t.sch * 0.89;
+            document.getElementById('dayKpis').innerHTML = `
+                <div class="kpi-card" style="border-top-color:var(--text-muted)"><div class="kpi-title">Shift Prod SCH</div><div class="kpi-val">${formatTime(tSchHrs)}</div></div>
+                <div class="kpi-card" style="border-top-color:var(--tpro)"><div class="kpi-title">Shift REQ</div><div class="kpi-val">${formatTime(t.req)}</div></div>
+                <div class="kpi-card" style="border-top-color:var(--accent)"><div class="kpi-title">Shift Billable</div><div class="kpi-val val-success">${formatTime(t.bill)}</div></div>
+                <div class="kpi-card" style="border-top-color:var(--success)"><div class="kpi-title">Overall IC%</div><div class="kpi-val ${mIc >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(mIc)}</div></div>
+            `;
+
+            let oHtml = '';
+            let labels = [], rData = [], bData = [], sData = [], icData = [], cData = [];
+
+            LOBs.forEach(lobConf => {
+                let l = d[lobConf.id];
+                if(l.req > 0 || l.act > 0 || l.sch > 0) {
+                    let schHrs = l.sch * 0.89; 
+                    let absPerc = l.sch > 0 ? (l.abs / l.sch) * 100 : 0;
+                    let ic = l.req === 0 ? 100 : (l.bill / l.req) * 100;
+                    let ovPerc = l.req > 0 ? (l.over / l.req) * 100 : 0;
+                    
+                    labels.push(lobConf.title); rData.push(l.req); bData.push(l.bill); sData.push(schHrs); icData.push(parseFloat(ic.toFixed(1))); cData.push(lobConf.color);
+
+                    oHtml += `<tr>
+                        <td style="font-weight:800; border-left:4px solid ${lobConf.color}">${lobConf.title}</td>
+                        <td class="val-bold" style="background:#f8fafc;">${formatTime(l.req)}</td>
+                        <td class="val-bold">${formatTime(l.act)}</td>
+                        <td class="val-danger">${formatPerc(absPerc)}</td>
+                        <td class="val-danger">${formatTime(l.abs)}</td>
+                        <td class="val-bold">${formatTime(schHrs)}</td>
+                        <td class="val-bold" style="color:var(--text-muted)">${formatTime(l.sch)}</td>
+                        <td class="val-accent">${formatTime(l.bill)}</td>
+                        <td class="${ic >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(ic)}</td>
+                        <td class="val-danger">${formatTime(l.lost)}</td>
+                        <td class="val-success">${formatTime(l.over)}</td>
+                        <td class="val-success">${formatPerc(ovPerc)}</td>
+                    </tr>`;
+                }
+            });
+            
+            let tAbsPerc = t.sch > 0 ? (t.abs / t.sch) * 100 : 0;
+            let tOvPerc = t.req > 0 ? (t.over / t.req) * 100 : 0;
+
+            oHtml += `<tr class="row-total">
+                <td>Overall</td>
+                <td class="val-bold" style="background:#f8fafc;">${formatTime(t.req)}</td>
+                <td class="val-bold">${formatTime(t.act)}</td>
+                <td class="val-danger">${formatPerc(tAbsPerc)}</td>
+                <td class="val-danger">${formatTime(t.abs)}</td>
+                <td class="val-bold">${formatTime(tSchHrs)}</td>
+                <td class="val-bold" style="color:var(--text-muted)">${formatTime(t.sch)}</td>
+                <td class="val-accent">${formatTime(t.bill)}</td>
+                <td class="${mIc >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(mIc)}</td>
+                <td class="val-danger">${formatTime(t.lost)}</td>
+                <td class="val-success">${formatTime(t.over)}</td>
+                <td class="val-success">${formatPerc(tOvPerc)}</td>
+            </tr>`;
+            document.getElementById('overviewTable').innerHTML = oHtml;
+
+            if(barChartInstance) barChartInstance.destroy();
+            barChartInstance = new Chart(document.getElementById('barChart'), {
+                type: 'bar', data: { labels: labels, datasets: [
+                    { label: 'SCH (Productive)', data: sData, backgroundColor: '#94a3b8' },
+                    { label: 'REQ', data: rData, backgroundColor: '#cbd5e1' }, 
+                    { label: 'Billable', data: bData, backgroundColor: '#3b82f6' }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            if(doughnutChartInstance) doughnutChartInstance.destroy();
+            doughnutChartInstance = new Chart(document.getElementById('doughnutChart'), {
+                type: 'doughnut', data: { labels: labels, datasets: [{ data: icData, backgroundColor: cData, borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
+            });
+
+            let icV = d.ICView;
+            let icVic = icV.req === 0 ? (icV.act > 0 ? 100 : 0) : (icV.bill / icV.req) * 100;
+            document.getElementById('icKpis').innerHTML = `
+                <div class="kpi-card" style="border-top-color:var(--text-muted)"><div class="kpi-title">Grouped REQ</div><div class="kpi-val">${formatTime(icV.req)}</div></div>
+                <div class="kpi-card" style="border-top-color:var(--tpro)"><div class="kpi-title">Grouped Actual</div><div class="kpi-val">${formatTime(icV.act)}</div></div>
+                <div class="kpi-card" style="border-top-color:var(--accent)"><div class="kpi-title">Grouped Billable</div><div class="kpi-val val-success">${formatTime(icV.bill)}</div></div>
+                <div class="kpi-card" style="background:#eff6ff; border-top-color:var(--success);"><div class="kpi-title" style="color:var(--accent)">Evaluation IC%</div><div class="kpi-val ${icVic >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(icVic)}</div></div>
+            `;
+            document.getElementById('icIntervals').innerHTML = icV.html;
+
+            LOBs.forEach(lobConf => {
+                let l = d[lobConf.id];
+                let ic = l.req === 0 ? 100 : (l.bill / l.req) * 100;
+                let schHrs = l.sch * 0.89;
+                let html = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 20px;">
+                        <h3 style="font-size: 20px; font-weight: 800; color: ${lobConf.color}; margin:0;">${lobConf.title} Deep Dive</h3>
+                    </div>
+                    <div class="kpi-grid">
+                        <div class="kpi-card" style="border-top-color:var(--text-muted)"><div class="kpi-title">Productive SCH</div><div class="kpi-val">${formatTime(schHrs)}</div></div>
+                        <div class="kpi-card" style="border-top-color:var(--tpro)"><div class="kpi-title">LOB REQ</div><div class="kpi-val">${formatTime(l.req)}</div></div>
+                        <div class="kpi-card" style="border-top-color:var(--accent)"><div class="kpi-title">LOB Billable</div><div class="kpi-val val-success">${formatTime(l.bill)}</div></div>
+                        <div class="kpi-card" style="border-top-color:var(--success)"><div class="kpi-title">LOB IC%</div><div class="kpi-val ${ic >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(ic)}</div></div>
+                    </div>
+                    <div class="table-wrapper">${l.html}</div>
+                `;
+                document.getElementById('lobContent-' + lobConf.id).innerHTML = html;
+            });
+        }
+    </script>
+</body>
+</html>

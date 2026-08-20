@@ -1,0 +1,565 @@
+/**
+
+ * Octopus WFM Framework - Core Backend
+
+ * Version: 19.1.0 (Custom LOB Views, Excluded GHC, Re-named Tabs & AHT included)
+
+ */
+
+
+
+function doGet() {
+
+  return HtmlService.createHtmlOutputFromFile('Index')
+
+      .setTitle('CPH Calc')
+
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+
+}
+
+
+
+function getDistroData() {
+
+  try {
+
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+    var data = sheet.getDataRange().getValues();
+
+    var distroMap = {};
+
+    if (data.length < 2) return JSON.stringify({ success: true, data: distroMap });
+
+    var headers = data[0].map(function(h) { return h.toString().toLowerCase().trim(); });
+
+    var emailIdx = headers.findIndex(function(h) { return h === 'talabat email' || h === 'email' || h.indexOf('email') > -1; });
+
+    var svIdx = headers.findIndex(function(h) { return h.indexOf('2nd level') > -1 || h.indexOf('supervisor') > -1 || h === 'sv'; });
+
+    var tlIdx = headers.findIndex(function(h) { return h.indexOf('1st level') > -1 || h.indexOf('tl') > -1 || h.indexOf('team leader') > -1; });
+
+    var hrIdx = headers.findIndex(function(h) { return h === 'hr id' || h === 'hr'; });
+
+    var lobIdx = headers.findIndex(function(h) { return h === 'lob' || h.indexOf('business') > -1; });
+
+    var siteIdx = headers.findIndex(function(h) { return h === 'site' || h === 'location' || h.indexOf('site') > -1; });
+
+
+
+    if (emailIdx === -1) return JSON.stringify({ success: false, error: "Missing Email Column" });
+
+
+
+    for (var i = 1; i < data.length; i++) {
+
+      var row = data[i];
+
+      if (row[emailIdx]) {
+
+        var rawEmail = row[emailIdx].toString().toLowerCase();
+
+        var emailKey = rawEmail.replace('@talabat.com', '').replace('.ext', '').replace(/[\s\.]/g, '').trim();
+
+        if (emailKey) {
+
+          distroMap[emailKey] = {
+
+            hr: hrIdx !== -1 && row[hrIdx] ? row[hrIdx].toString().trim() : 'N/A',
+
+            sv: svIdx !== -1 && row[svIdx] ? row[svIdx].toString().trim() : 'Unassigned SPV',
+
+            tl: tlIdx !== -1 && row[tlIdx] ? row[tlIdx].toString().trim() : 'Unassigned TL',
+
+            lob: lobIdx !== -1 && row[lobIdx] ? row[lobIdx].toString().trim() : 'Unknown LOB',
+
+            site: siteIdx !== -1 && row[siteIdx] ? row[siteIdx].toString().trim() : 'Unknown Site'
+
+          };
+
+        }
+
+      }
+
+    }
+
+    return JSON.stringify({ success: true, data: distroMap });
+
+  } catch (e) {
+
+    return JSON.stringify({ success: false, error: e.toString() });
+
+  }
+
+}
+
+
+
+function getHeatmapColor(val) {
+
+  if (val === '-' || val === '' || isNaN(val) || val === 0) return '#ffffff';
+
+ 
+
+  if (val < 360) return '#57bb8a';
+
+  if (val < 390) return '#abc878';
+
+  if (val < 420) return '#bfcb74';
+
+  if (val < 450) return '#d2ce70';
+
+  if (val < 480) return '#fbc768';
+
+  if (val < 510) return '#f2a66d';
+
+  return '#e67c73';                
+
+}
+
+
+
+function generateExcelOnServer(payload) {
+
+  try {
+
+    var data = JSON.parse(payload);
+
+    var ss = SpreadsheetApp.create("WFM_AHT_Report_" + new Date().toISOString().slice(0,10));
+
+    var defaultSheet = ss.getSheets()[0];
+
+   
+
+    // تم تغيير اسم الشيت الكلي ليكون AHT
+
+    var sheetsToCreate = ['AHT', 'Alex', 'Assiut'];
+
+   
+
+    var hBg = "#073763"; var hTx = "#ffffff";
+
+    var tBg = "#f1f5f9"; var tTx = "#000000";
+
+    var wBg = "#ffffff";
+
+   
+
+    sheetsToCreate.forEach(function(filterName) {
+
+      var dataKey = filterName === 'AHT' ? 'Combined (All)' : filterName;
+
+      var ws = ss.insertSheet(filterName);
+
+      var currentData = data[dataKey];
+
+      var totals = currentData.totals;
+
+     
+
+      var oAht = totals.chats > 0 ? (totals.totalHandle)/totals.chats : 0;
+
+      var oTlk = totals.chats > 0 ? totals.talk/totals.chats : 0;
+
+      var oAcw = totals.chats > 0 ? totals.acw/totals.chats : 0;
+
+
+
+      var agentHeaders = ["HR", "Name", "Email", "TL", "SPV", "Chats", "AHT", "Talk+Hold", "ACW", "Avg Talk+Hold", "Avg ACW", "Site", "LOB"];
+
+      ws.getRange(1, 1, 1, 13).setValues([agentHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      var agentRowsCount = 0;
+
+      if (currentData.agents && currentData.agents.length > 0) {
+
+        agentRowsCount = currentData.agents.length;
+
+        var agentRows=[], agentBGs=[], agentFmts=[];
+
+        currentData.agents.forEach(function(a) {
+
+          agentRows.push([a.hr, a.name, a.email, a.tl, a.sv, a.chats, a.aht, a.talk, a.acw, a.avgT, a.avgC, a.site, a.lob]);
+
+          agentBGs.push([wBg, wBg, wBg, wBg, wBg, wBg, getHeatmapColor(a.aht), wBg, wBg, getHeatmapColor(a.avgT), wBg, wBg, wBg]);
+
+          agentFmts.push(["@","@","@","@","@","0","0.00","0.00","0.00","0.00","0.00","@","@"]);
+
+        });
+
+        ws.getRange(2, 1, agentRows.length, 13).setValues(agentRows).setBackgrounds(agentBGs).setNumberFormats(agentFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      }
+
+      ws.getRange(agentRowsCount + 2, 1, 1, 13).setValues([["Overall", "", "", "", "", totals.chats, oAht, totals.talk, totals.acw, oTlk, oAcw, "", ""]])
+
+        .setBackground(tBg).setFontColor(tTx).setFontWeight("bold").setNumberFormats([["@","@","@","@","@","0","0.00","0.00","0.00","0.00","0.00","@","@"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+
+
+      var spvCol = 17;
+
+      var svHeaders = ["SPV", "Chats", "AHT", "Talk+Hold", "ACW", "Avg Talk+Hold", "Avg ACW"];
+
+      ws.getRange(1, spvCol, 1, 7).setValues([svHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      var sRowStart = 2;
+
+      if (currentData.svs && currentData.svs.length > 0) {
+
+        var svRows=[], svBGs=[], svFmts=[];
+
+        currentData.svs.forEach(function(s) {
+
+          svRows.push([s.name, s.chats, s.aht, s.talk, s.acw, s.avgT, s.avgC]);
+
+          svBGs.push([wBg, wBg, getHeatmapColor(s.aht), wBg, wBg, getHeatmapColor(s.avgT), wBg]);
+
+          svFmts.push(["@", "0", "0.00", "0.00", "0.00", "0.00", "0.00"]);
+
+        });
+
+        ws.getRange(sRowStart, spvCol, svRows.length, 7).setValues(svRows).setBackgrounds(svBGs).setNumberFormats(svFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+        sRowStart += svRows.length;
+
+      }
+
+      ws.getRange(sRowStart, spvCol, 1, 7).setValues([["Overall", totals.chats, oAht, totals.talk, totals.acw, oTlk, oAcw]])
+
+        .setBackground(tBg).setFontColor(tTx).setFontWeight("bold").setNumberFormats([["@", "0", "0.00", "0.00", "0.00", "0.00", "0.00"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+
+
+      var tlStart = sRowStart + 3;
+
+      var tlHeaders = ["TL", "SPV", "Chats", "AHT", "Talk+Hold", "ACW", "Avg Talk+Hold", "Avg ACW"];
+
+      ws.getRange(tlStart, spvCol, 1, 8).setValues([tlHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      var tlRowStart = tlStart + 1;
+
+      if (currentData.tls && currentData.tls.length > 0) {
+
+        var tlRows=[], tlBGs=[], tlFmts=[];
+
+        currentData.tls.forEach(function(t) {
+
+          tlRows.push([t.name, t.sv, t.chats, t.aht, t.talk, t.acw, t.avgT, t.avgC]);
+
+          tlBGs.push([wBg, wBg, wBg, getHeatmapColor(t.aht), wBg, wBg, getHeatmapColor(t.avgT), wBg]);
+
+          tlFmts.push(["@", "@", "0", "0.00", "0.00", "0.00", "0.00", "0.00"]);
+
+        });
+
+        ws.getRange(tlRowStart, spvCol, tlRows.length, 8).setValues(tlRows).setBackgrounds(tlBGs).setNumberFormats(tlFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+        tlRowStart += tlRows.length;
+
+      }
+
+      ws.getRange(tlRowStart, spvCol, 1, 8).setValues([["Overall", "-", totals.chats, oAht, totals.talk, totals.acw, oTlk, oAcw]])
+
+        .setBackground(tBg).setFontColor(tTx).setFontWeight("bold").setNumberFormats([["@", "@", "0", "0.00", "0.00", "0.00", "0.00", "0.00"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+
+
+      var tenStart = tlRowStart + 3;
+
+      var tenHeaders = ["Tenurity", "Chats", "AHT", "Avg Talk+Hold", "Avg ACW", "Talk+Hold Time", "ACW Time"];
+
+      ws.getRange(tenStart, spvCol, 1, 7).setValues([tenHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      var tenRowStart = tenStart + 1;
+
+      if (currentData.tens && currentData.tens.length > 0) {
+
+        var tenRows=[], tenBGs=[], tenFmts=[];
+
+        currentData.tens.forEach(function(t) {
+
+          tenRows.push([t.name, t.chats, t.aht, t.avgT, t.avgC, t.talk, t.acw]);
+
+          tenBGs.push([wBg, wBg, getHeatmapColor(t.aht), getHeatmapColor(t.avgT), wBg, wBg, wBg]);
+
+          tenFmts.push(["@", "0", "0.00", "0.00", "0.00", "0.00", "0.00"]);
+
+        });
+
+        ws.getRange(tenRowStart, spvCol, tenRows.length, 7).setValues(tenRows).setBackgrounds(tenBGs).setNumberFormats(tenFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+        tenRowStart += tenRows.length;
+
+      }
+
+      ws.getRange(tenRowStart, spvCol, 1, 7).setValues([["Overall", totals.chats, oAht, oTlk, oAcw, totals.talk, totals.acw]])
+
+        .setBackground(tBg).setFontColor(tTx).setFontWeight("bold").setNumberFormats([["@", "0", "0.00", "0.00", "0.00", "0.00", "0.00"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+
+
+      var drvCol = 28;
+
+      var drvHeaders = ["Contact driver", "Chats", "AHT", "Avg Talk+Hold", "Avg ACW"];
+
+      ws.getRange(1, drvCol, 1, 5).setValues([drvHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      var drvRowStart = 2;
+
+      if (currentData.drvs && currentData.drvs.length > 0) {
+
+        var drvRows=[], drvBGs=[], drvFmts=[];
+
+        currentData.drvs.forEach(function(d) {
+
+          drvRows.push([d.name, d.chats, d.aht, d.avgT, d.avgC]);
+
+          drvBGs.push([wBg, wBg, getHeatmapColor(d.aht), getHeatmapColor(d.avgT), wBg]);
+
+          drvFmts.push(["@", "0", "0.00", "0.00", "0.00"]);
+
+        });
+
+        ws.getRange(drvRowStart, drvCol, drvRows.length, 5).setValues(drvRows).setBackgrounds(drvBGs).setNumberFormats(drvFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+        drvRowStart += drvRows.length;
+
+      }
+
+      ws.getRange(drvRowStart, drvCol, 1, 5).setValues([["Overall", totals.chats, oAht, oTlk, oAcw]])
+
+        .setBackground(tBg).setFontColor(tTx).setFontWeight("bold").setNumberFormats([["@", "0", "0.00", "0.00", "0.00"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+
+
+      ws.setColumnWidth(1, 80); ws.setColumnWidth(2, 170); ws.setColumnWidth(3, 210); ws.setColumnWidth(4, 110); ws.setColumnWidth(5, 110);
+
+      ws.setColumnWidth(6, 60); ws.setColumnWidth(7, 80); ws.setColumnWidth(8, 90); ws.setColumnWidth(9, 90); ws.setColumnWidth(10, 110);
+
+      ws.setColumnWidth(11, 80); ws.setColumnWidth(12, 80); ws.setColumnWidth(13, 110);
+
+      ws.setColumnWidth(17, 150); ws.setColumnWidth(18, 110); ws.setColumnWidth(19, 80); ws.setColumnWidth(20, 80); ws.setColumnWidth(21, 90);
+
+      ws.setColumnWidth(22, 90); ws.setColumnWidth(23, 110); ws.setColumnWidth(24, 80);
+
+      ws.setColumnWidth(28, 240); ws.setColumnWidth(29, 60); ws.setColumnWidth(30, 80); ws.setColumnWidth(31, 80); ws.setColumnWidth(32, 80);
+
+    });
+
+   
+
+    if (data.intervals && data.intervals.data) {
+
+      var wsInt = ss.insertSheet("View per interval"); // تم تغيير اسم الشيت
+
+      var iHeaders = ["Interval", "Chats", "AHT", "Talk+Hold", "ACW Time"];
+
+      wsInt.getRange(1, 1, 1, 5).setValues([iHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      var iRow = 2;
+
+      if (data.intervals.data.length > 0) {
+
+        var intRows=[], intBGs=[], intFmts=[];
+
+        data.intervals.data.forEach(function(v) {
+
+          intRows.push([v.label, v.chats, v.aht, v.avgT, v.avgC]);
+
+          intBGs.push([wBg, wBg, getHeatmapColor(v.aht), getHeatmapColor(v.avgT), wBg]);
+
+          intFmts.push(["@", "0", "0.00", "0.00", "0.00"]);
+
+        });
+
+        wsInt.getRange(2, 1, intRows.length, 5).setValues(intRows).setBackgrounds(intBGs).setNumberFormats(intFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+        iRow += intRows.length;
+
+      }
+
+      var iTotals = data.intervals.totals;
+
+      var ioAht = iTotals.chats > 0 ? (iTotals.totalHandle)/iTotals.chats : 0;
+
+      var ioTlk = iTotals.chats > 0 ? iTotals.talk/iTotals.chats : 0;
+
+      var ioAcw = iTotals.chats > 0 ? iTotals.acw/iTotals.chats : 0;
+
+      wsInt.getRange(iRow, 1, 1, 5).setValues([["Overall", iTotals.chats, ioAht, ioTlk, ioAcw]])
+
+        .setBackground(tBg).setFontColor(tTx).setFontWeight("bold").setNumberFormats([["@", "0", "0.00", "0.00", "0.00"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      for(var col=1; col<=5; col++) { wsInt.setColumnWidth(col, 130); }
+
+    }
+
+
+
+    ss.deleteSheet(defaultSheet);
+
+    return { success: true, downloadUrl: "https://docs.google.com/spreadsheets/d/" + ss.getId() + "/export?format=xlsx" };
+
+  } catch (e) { return { success: false, error: e.toString() }; }
+
+}
+
+
+
+function generateCPHExcelOnServer(payload) {
+
+  try {
+
+    var data = JSON.parse(payload);
+
+    var ss = SpreadsheetApp.create("WFM_CPH_Report_" + new Date().toISOString().slice(0,10));
+
+    var defaultSheet = ss.getSheets()[0];
+
+   
+
+    var sheetsToCreate = ['CPH', 'Alex', 'Assiut', 'Combined', 'TPro'];
+
+   
+
+    var hBg = "#073763"; var hTx = "#ffffff";
+
+
+
+    sheetsToCreate.forEach(function(filterName) {
+
+      var ws = ss.insertSheet(filterName);
+
+      var currentData = data[filterName];
+
+      var totals = currentData.totals;
+
+      var oCph = totals.hours >= 0.016 ? totals.chats / totals.hours : -1;
+
+      var oAht = totals.chats > 0 ? (totals.totalHandle)/totals.chats : 0;
+
+
+
+      var agentHeaders = ["LOB", "HR", "Email", "TL", "SPV", "Chats", "AHT", "Online Hours", "CPH"];
+
+      ws.getRange(1, 1, 1, 9).setValues([agentHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      var agentRowsCount = 0;
+
+      if (currentData.agents && currentData.agents.length > 0) {
+
+        agentRowsCount = currentData.agents.length;
+
+        var agentRows=[], agentFmts=[];
+
+        currentData.agents.forEach(function(a) {
+
+          agentRows.push([a.lob, a.hr, a.email, a.tl, a.sv, a.chats, a.aht, a.hours / 24, a.cph === -1 ? "N/A" : a.cph]);
+
+          agentFmts.push(["@","@","@","@","@","0","0.00","[h]:mm:ss", a.cph === -1 ? "@" : "0.00"]);
+
+        });
+
+        ws.getRange(2, 1, agentRows.length, 9).setValues(agentRows).setNumberFormats(agentFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      }
+
+      ws.getRange(agentRowsCount + 2, 1, 1, 9).setValues([["Overall", "", "", "", "", totals.chats, oAht, totals.hours / 24, oCph === -1 ? "N/A" : oCph]])
+
+        .setBackground("#f1f5f9").setFontColor("#000000").setFontWeight("bold").setNumberFormats([["@","@","@","@","@","0","0.00","[h]:mm:ss", oCph === -1 ? "@" : "0.00"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+
+
+      var lobCol = 12;
+
+      var lobHeaders = ["LOB", "Chats", "AHT", "Online Hours", "CPH"];
+
+      ws.getRange(1, lobCol, 1, 5).setValues([lobHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      if (currentData.lobs && currentData.lobs.length > 0) {
+
+        var lobRows=[], lobFmts=[];
+
+        currentData.lobs.forEach(function(l) {
+
+          lobRows.push([l.name, l.chats, l.aht, l.hours / 24, l.cph === -1 ? "N/A" : l.cph]);
+
+          lobFmts.push(["@", "0", "0.00", "[h]:mm:ss", l.cph === -1 ? "@" : "0.00"]);
+
+        });
+
+        ws.getRange(2, lobCol, lobRows.length, 5).setValues(lobRows).setNumberFormats(lobFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      }
+
+      ws.getRange(currentData.lobs.length + 2, lobCol, 1, 5).setValues([["Overall", totals.chats, oAht, totals.hours / 24, oCph === -1 ? "N/A" : oCph]])
+
+        .setBackground("#f1f5f9").setFontColor("#000000").setFontWeight("bold").setNumberFormats([["@", "0", "0.00", "[h]:mm:ss", oCph === -1 ? "@" : "0.00"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+
+
+      ws.setColumnWidth(1, 110); ws.setColumnWidth(2, 85); ws.setColumnWidth(3, 245); ws.setColumnWidth(4, 150); ws.setColumnWidth(5, 150);
+
+      ws.setColumnWidth(6, 80); ws.setColumnWidth(7, 80); ws.setColumnWidth(8, 110); ws.setColumnWidth(9, 80);
+
+      ws.setColumnWidth(12, 130); ws.setColumnWidth(13, 80); ws.setColumnWidth(14, 80); ws.setColumnWidth(15, 110); ws.setColumnWidth(16, 80);
+
+    });
+
+
+
+    if (data.intervals) {
+
+      var wsInt = ss.insertSheet("View per interval"); // تم تغيير اسم الشيت
+
+      var iHeaders = ["Interval", "Chats", "AHT", "Online Hours", "CPH"];
+
+      wsInt.getRange(1, 1, 1, 5).setValues([iHeaders]).setBackground(hBg).setFontColor(hTx).setFontWeight("bold").setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+      var iRow = 2;
+
+      if (data.intervals.data && data.intervals.data.length > 0) {
+
+        var intRows=[], intFmts=[];
+
+        data.intervals.data.forEach(function(v) {
+
+          intRows.push([v.label, v.chats, v.aht, v.hours / 24, v.cph === -1 ? "N/A" : v.cph]);
+
+          intFmts.push(["@", "0", "0.00", "[h]:mm:ss", v.cph === -1 ? "@" : "0.00"]);
+
+        });
+
+        wsInt.getRange(2, 1, intRows.length, 5).setValues(intRows).setNumberFormats(intFmts).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+        iRow += intRows.length;
+
+      }
+
+      var iTotals = data.intervals.totals;
+
+      var ioCph = iTotals.hours >= 0.016 ? iTotals.chats / iTotals.hours : -1;
+
+      var ioAht = iTotals.chats > 0 ? (iTotals.totalHandle)/iTotals.chats : 0;
+
+      wsInt.getRange(iRow, 1, 1, 5).setValues([["Overall", iTotals.chats, ioAht, iTotals.hours / 24, ioCph === -1 ? "N/A" : ioCph]])
+
+        .setBackground("#f1f5f9").setFontColor("#000000").setFontWeight("bold").setNumberFormats([["@", "0", "0.00", "[h]:mm:ss", ioCph === -1 ? "@" : "0.00"]]).setHorizontalAlignment("center").setBorder(true,true,true,true,true,true);
+
+
+
+      for(var col=1; col<=5; col++) { wsInt.setColumnWidth(col, 130); }
+
+    }
+
+   
+
+    ss.deleteSheet(defaultSheet);
+
+    return { success: true, downloadUrl: "https://docs.google.com/spreadsheets/d/" + ss.getId() + "/export?format=xlsx" };
+
+  } catch (e) { return { success: false, error: e.toString() }; }}

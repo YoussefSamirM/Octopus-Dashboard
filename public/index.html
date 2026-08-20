@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Enterprise WFM Platform</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div id="toast-container"></div>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div>
+          <div class="sidebar-header">
+            <i data-lucide="layers" class="icon-brand"></i>
+            <h2>WFM System</h2>
+          </div>
+
+          <div class="auth-section">
+            <label>Calabrio API Token</label>
+            <input
+              type="password"
+              id="apiToken"
+              placeholder="Paste token here..."
+            />
+            <button class="btn-verify" onclick="verifyToken()">
+              Verify Access
+            </button>
+            <div id="tokenStatus"></div>
+          </div>
+
+          <nav class="nav-menu">
+            <button class="nav-item active" onclick="switchTab('buffer')">
+              <i data-lucide="bar-chart-2"></i> Staffing Buffer
+            </button>
+            <button class="nav-item" onclick="switchTab('shape')">
+              <i data-lucide="activity"></i> Shape Analysis
+            </button>
+            <button class="nav-item" onclick="switchTab('activity')">
+              <i data-lucide="calendar-plus"></i> Add Activity
+            </button>
+            <button class="nav-item" onclick="switchTab('tardy')">
+              <i data-lucide="clock"></i> Add Tardy
+            </button>
+          </nav>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <!-- BUFFER DASHBOARD -->
+        <div id="buffer-view" class="tab-content">
+          <header class="page-header">
+            <h1>Staffing Buffer</h1>
+            <p>
+              Real-time Over/Under calculation comparing Forecasted vs.
+              Scheduled staffing.
+            </p>
+          </header>
+
+          <div class="card">
+            <div class="card-body controls-row">
+              <div class="input-group">
+                <label>Target Date</label>
+                <input type="date" id="bufferDate" />
+              </div>
+              <div class="input-group">
+                <label>Interval</label>
+                <input type="time" id="bufferTime" step="1800" value="08:00" />
+              </div>
+              <button class="btn btn-primary" onclick="runBuffer()">
+                <i data-lucide="play"></i> Execute
+              </button>
+            </div>
+          </div>
+
+          <div id="bufferLoading" class="loader hidden">
+            <div class="spinner"></div>
+            Extracting metrics from Calabrio...
+          </div>
+
+          <div id="bufferDashboard" class="grid-2 hidden">
+            <div class="card">
+              <div class="card-title-row">
+                <h3>Without Expected Absences</h3>
+              </div>
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>LOB</th>
+                      <th>Forecast</th>
+                      <th>Scheduled</th>
+                      <th>O/U</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bufferNormalBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title-row">
+                <h3>With Expected Absences (Shrinkage)</h3>
+              </div>
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>LOB</th>
+                      <th>Forecast (S)</th>
+                      <th>Scheduled (S)</th>
+                      <th>O/U</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bufferShrinkBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SHAPE ANALYSIS -->
+        <div id="shape-view" class="tab-content hidden">
+          <header class="page-header">
+            <h1>Shape Analysis</h1>
+            <p>Multi-interval breakdown for intraday management.</p>
+          </header>
+          <div class="card">
+            <div class="card-body controls-row">
+              <div class="input-group">
+                <label>Start Date</label
+                ><input type="date" id="shapeStartDate" />
+              </div>
+              <div class="input-group">
+                <label>Start Time</label
+                ><input
+                  type="time"
+                  id="shapeStartTime"
+                  step="1800"
+                  value="08:00"
+                />
+              </div>
+              <div class="input-group">
+                <label>End Date</label><input type="date" id="shapeEndDate" />
+              </div>
+              <div class="input-group">
+                <label>End Time</label
+                ><input
+                  type="time"
+                  id="shapeEndTime"
+                  step="1800"
+                  value="17:00"
+                />
+              </div>
+              <button class="btn btn-primary" onclick="runShape()">
+                <i data-lucide="play"></i> Analyze
+              </button>
+            </div>
+          </div>
+          <div id="shapeLoading" class="loader hidden">
+            <div class="spinner"></div>
+            Generating Heatmap...
+          </div>
+          <div id="shapeDashboard" class="hidden">
+            <div class="card">
+              <div class="card-title-row">
+                <h3>Shape Without EXP. ABS</h3>
+                <button
+                  class="btn btn-secondary"
+                  onclick="exportCSV('shapeNormalTable', 'Shape_Data')"
+                >
+                  <i data-lucide="download"></i> Export CSV
+                </button>
+              </div>
+              <div class="table-wrapper">
+                <table class="data-table" id="shapeNormalTable">
+                  <thead id="shapeNormalHead"></thead>
+                  <tbody id="shapeNormalBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title-row">
+                <h3>Shape With EXP. ABS</h3>
+                <button
+                  class="btn btn-secondary"
+                  onclick="exportCSV('shapeShrinkTable', 'Shrinkage_Shape')"
+                >
+                  <i data-lucide="download"></i> Export CSV
+                </button>
+              </div>
+              <div class="table-wrapper">
+                <table class="data-table" id="shapeShrinkTable">
+                  <thead id="shapeShrinkHead"></thead>
+                  <tbody id="shapeShrinkBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADD ACTIVITY -->
+        <div id="activity-view" class="tab-content hidden">
+          <header class="page-header">
+            <h1>Bulk Add Activity</h1>
+            <p>Conflict-aware engine with 3-zone architecture.</p>
+          </header>
+          <div class="card">
+            <div class="card-body controls-row">
+              <div class="input-group">
+                <label>Activity Type</label>
+                <select id="actType">
+                  <option value="Coaching">Coaching</option>
+                  <option value="Overage">Overage</option>
+                  <option value="OverTime by RTM">OverTime by RTM</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Break Logic</label>
+                <select id="actLogic">
+                  <option value="Wrap">Wrap around breaks</option>
+                  <option value="Shift breaks forward">
+                    Shift breaks forward
+                  </option>
+                  <option value="Cancel if overlapping a break">
+                    Abort on overlap
+                  </option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>&nbsp;</label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="safeModeAct" checked />
+                  <span>Dry Run Mode</span>
+                </label>
+              </div>
+              <button class="btn btn-primary" onclick="runActivity()">
+                <i data-lucide="play"></i> Execute Batch
+              </button>
+              <button
+                id="undoActBtn"
+                class="btn btn-warning hidden"
+                onclick="executeUndo('activity')"
+              >
+                <i data-lucide="rotate-ccw"></i> Undo Last
+              </button>
+            </div>
+            <div class="divider"></div>
+            <div class="card-body" style="padding-top: 0">
+              <div class="input-group w-full">
+                <label>Paste Data (EmpID | Date | Start | End)</label>
+                <textarea
+                  id="actInput"
+                  rows="6"
+                  placeholder="123456&#9;2023-10-01&#9;14:00&#9;15:00"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+          <div id="actLoading" class="loader hidden">
+            <div class="spinner"></div>
+            Transmitting payloads...
+          </div>
+          <div class="card hidden" id="actTableContainer">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee ID</th>
+                    <th>Status Result</th>
+                  </tr>
+                </thead>
+                <tbody id="actBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADD TARDY -->
+        <div id="tardy-view" class="tab-content hidden">
+          <header class="page-header">
+            <h1>Automated Tardy</h1>
+            <p>Process cross-midnight late arrivals efficiently.</p>
+          </header>
+          <div class="card">
+            <div class="card-body controls-row">
+              <div class="input-group">
+                <label>Target Date</label>
+                <input type="date" id="tardyDate" />
+              </div>
+              <div class="input-group">
+                <label>&nbsp;</label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="safeModeTardy" checked />
+                  <span>Dry Run Mode</span>
+                </label>
+              </div>
+              <button class="btn btn-primary" onclick="runTardy()">
+                <i data-lucide="play"></i> Execute Batch
+              </button>
+              <button
+                id="undoTardyBtn"
+                class="btn btn-warning hidden"
+                onclick="executeUndo('tardy')"
+              >
+                <i data-lucide="rotate-ccw"></i> Undo Last
+              </button>
+            </div>
+            <div class="divider"></div>
+            <div class="card-body" style="padding-top: 0">
+              <div class="input-group w-full">
+                <label>Paste Data (EmpID | Login Time)</label>
+                <textarea
+                  id="tardyInput"
+                  rows="6"
+                  placeholder="123456&#9;08:15"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+          <div id="tardyLoading" class="loader hidden">
+            <div class="spinner"></div>
+            Calculating spans...
+          </div>
+          <div class="card hidden" id="tardyTableContainer">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee ID</th>
+                    <th>Status Result</th>
+                  </tr>
+                </thead>
+                <tbody id="tardyBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      lucide.createIcons();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WFM Enterprise - Master Engine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-main: #f8fafc; --surface: #ffffff; --text-main: #0f172a; --text-muted: #64748b;
+            --border: #e2e8f0; --primary: #0f172a; --accent: #2563eb; --success: #059669; --danger: #dc2626;
+            --tpro: #10b981; --ghc: #8b5cf6; --tmart: #ec4899; --comb: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); font-size: 13px; -webkit-font-smoothing: antialiased; }
+        .top-nav { background: var(--primary); padding: 16px 32px; color: #fff; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .top-nav h1 { font-size: 18px; margin: 0; display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -0.5px;}
+        .top-actions { display: flex; gap: 12px; align-items: center; }
+        .sys-badge { background: rgba(37,99,235,0.15); color: #60a5fa; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(59,130,246,0.3);}
+        .btn-reset { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: 0.2s; display: none; }
+        .btn-reset:hover { background: rgba(255,255,255,0.2); }
+
+        .layout-container { max-width: 1550px; padding: 32px; margin: 0 auto; }
+        .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .toolbar-footer { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 16px; border-top: 1px solid var(--border); margin-top: 8px;}
+        .filter-group { display: flex; flex-direction: column; gap: 10px; }
+        .filter-group label { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        .input-wrap { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-main); height: 44px; padding: 0 16px; gap: 12px; transition: 0.2s; }
+        .input-wrap:focus-within { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+        .input-wrap input { border: none; font-size: 14px; font-weight: 700; color: var(--text-main); background: transparent; outline: none; width: 100%; cursor: pointer;}
+        .btn-upload { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 20px; height: 44px; border: 1px dashed var(--border); border-radius: 8px; background: var(--surface); font-weight: 700; font-size: 12px; color: var(--primary); cursor: pointer; transition: 0.2s; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        .btn-upload:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff;}
+        .btn-upload.success { border: 1px solid var(--success); color: var(--success); background: #ecfdf5; border-style: solid;}
+        .btn-primary { padding: 0 32px; height: 44px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: 0.2s; box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
+        .btn-primary:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37,99,235,0.3); }
+        
+        .breadcrumbs { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 700; color: var(--text-muted); margin-bottom: 24px; padding: 16px 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.02);}
+        .breadcrumb-item { cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .breadcrumb-item:hover { color: var(--accent); }
+        .breadcrumb-item.active { color: var(--primary); cursor: default; }
+        .breadcrumb-sep { color: var(--border); }
+
+        .view-section { display: none; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .lob-cards-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .lob-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; cursor: pointer; transition: 0.3s; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.02);}
+        .lob-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); border-color: var(--accent); }
+        .lob-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; }
+        .lob-card.Combined::before { background: var(--comb); }
+        .lob-card.TPro::before { background: var(--tpro); }
+        .lob-card.GHC::before { background: var(--ghc); }
+        .lob-card.TMart-FU::before { background: var(--tmart); }
+        .lob-card h3 { font-size: 20px; font-weight: 900; margin-bottom: 20px; color: var(--primary); display: flex; justify-content: space-between; align-items: center;}
+        .lob-card h3 i { color: var(--text-muted); font-size: 16px; }
+        .lob-stat { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .lob-stat:last-child { border-bottom: none; padding-bottom: 0; }
+        .stat-label { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+        .stat-value { font-size: 15px; font-weight: 800; color: var(--text-main); }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 24px; }
+        .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; border-top: 4px solid var(--border);}
+        .kpi-title { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        .kpi-val { font-size: 24px; font-weight: 900; color: var(--primary); }
+
+        .table-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        th { background: #f8fafc; font-weight: 800; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;}
+        tr:hover td { background: #f1f5f9; }
+        .row-total { background: #e2e8f0; font-weight: 800; border-top: 2px solid #cbd5e1; }
+        .val-bold { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .val-success { color: var(--success); font-weight: 800; }
+        .val-danger { color: var(--danger); font-weight: 800; }
+        .val-accent { color: var(--accent); font-weight: 800; }
+        
+        .action-link { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-weight: 700; cursor: pointer; text-decoration: none; background: #eff6ff; border: 1px solid #bfdbfe; padding: 8px 16px; border-radius: 6px; transition: 0.2s;}
+        .action-link:hover { background: var(--accent); color: white; border-color: var(--accent);}
+        
+        .search-box { padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); outline: none; font-family: 'Inter'; font-weight: 600; font-size: 13px; transition: 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); width: 100%;}
+        .search-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .filter-row { display: flex; gap: 16px; background: var(--surface); padding: 16px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); align-items: flex-end;}
+
+        #pageLoader { position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+        .error-banner { display: none; background: #fef2f2; color: var(--danger); padding: 16px; font-weight: 700; font-size: 14px; align-items: center; justify-content: center; gap: 10px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #fecaca; }
+        
+        .mode-toggle { display: flex; background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 4px; gap: 4px; float: right; margin-bottom: 16px;}
+        .mode-btn { padding: 10px 20px; font-size: 13px; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .mode-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
+        .tab-btn { padding: 12px 24px; font-weight: 800; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; transition: 0.2s; font-size: 14px;}
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <div id="pageLoader" style="display: none;">
+        <div class="spinner"></div>
+        <div id="loaderText" style="font-weight: 800; color: var(--primary); font-size: 16px;">Processing Analytics...</div>
+    </div>
+    
+    <div class="top-nav">
+        <h1><i class="fa-solid fa-chess-knight" style="color: #60a5fa;"></i> WFM Enterprise Master</h1>
+        <div class="top-actions">
+            <button class="btn-reset" id="btnReset" onclick="resetApp()"><i class="fa-solid fa-rotate-right"></i> New Upload</button>
+            <div class="sys-badge"><i class="fa-solid fa-bolt"></i> Local Engine</div>
+        </div>
+    </div>
+
+    <div class="layout-container">
+        <div class="error-banner" id="errorBanner">
+            <i class="fa-solid fa-triangle-exclamation"></i> <span id="errorText"></span>
+        </div>
+
+        <!-- Toolbar (4 Files) -->
+        <div class="toolbar" id="mainToolbar">
+            <div class="filter-group">
+                <label>1. Agent Status (CSV)</label>
+                <button class="btn-upload" id="btnStatus" onclick="document.getElementById('inputStatus').click()">
+                    <i class="fa-solid fa-file-csv"></i> <span id="btnStatusText">Upload Status Log</span>
+                </button>
+                <input type="file" id="inputStatus" accept=".csv" style="display:none;">
+            </div>
+            <div class="filter-group">
+                <label>2. Master Data (Excel)</label>
+                <button class="btn-upload" id="btnMaster" onclick="document.getElementById('inputMaster').click()">
+                    <i class="fa-solid fa-file-excel"></i> <span id="btnMasterText">Upload Master Sheet</span>
+                </button>
+                <input type="file" id="inputMaster" accept=".xlsx, .xls" style="display:none;">
+            </div>
+            <div class="filter-group">
+                <label>3. Skills Matrix (Excel)</label>
+                <button class="btn-upload" id="btnSkills" onclick="document.getElementById('inputSkills').click()">
+                    <i class="fa-solid fa-file-excel"></i> <span id="btnSkillsText">Upload Skills</span>
+                </button>
+                <input type="file" id="inputSkills" accept=".xlsx, .xls" style="display:none;">
+            </div>
+            <div class="filter-group">
+                <label>4. ABS Data (Excel)</label>
+                <button class="btn-upload" id="btnAbs" onclick="document.getElementById('inputAbs').click()">
+                    <i class="fa-solid fa-file-excel"></i> <span id="btnAbsText">Upload ABS Sheet</span>
+                </button>
+                <input type="file" id="inputAbs" accept=".xlsx, .xls" style="display:none;">
+            </div>
+
+            <div class="toolbar-footer">
+                <div style="display: flex; gap: 20px;">
+                    <div class="filter-group">
+                        <label>Start Date</label>
+                        <div class="input-wrap" style="width: 170px;"><i class="fa-solid fa-calendar-day"></i><input type="date" id="startDate"></div>
+                    </div>
+                    <div class="filter-group">
+                        <label>End Date (Optional)</label>
+                        <div class="input-wrap" style="width: 170px;"><i class="fa-regular fa-calendar-check"></i><input type="date" id="endDate"></div>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="runAnalysis()" id="calcBtn"><i class="fa-solid fa-bolt"></i> Generate Dashboard</button>
+            </div>
+        </div>
+
+        <div class="breadcrumbs" id="breadcrumbs" style="display: none;"></div>
+
+        <!-- View 1: Empty State -->
+        <div id="view-empty" class="view-section active" style="text-align: center; padding: 60px 20px;">
+            <i class="fa-solid fa-chart-pie" style="font-size: 64px; color: var(--border); margin-bottom: 24px;"></i>
+            <h3 style="font-size: 24px; font-weight: 900; color: var(--primary); margin-bottom: 12px;">Data Center Ready</h3>
+            <p style="font-size: 15px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6;">
+                Upload the required files locally. The engine validates dropped intervals strictly and calculates metrics precisely.
+            </p>
+        </div>
+
+        <!-- View 2: Home LOB Cards -->
+        <div id="view-home" class="view-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+                <h2 style="font-size: 24px; font-weight: 900; color: var(--primary);">Portfolio Overview</h2>
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="btn-std" onclick="switchShiftMode('std')"><i class="fa-regular fa-clock"></i> Standard Day</button>
+                    <button class="mode-btn" id="btn-ovn" onclick="switchShiftMode('ovn')"><i class="fa-solid fa-moon"></i> 8-to-8 Shift</button>
+                </div>
+            </div>
+            <div class="lob-cards-container" id="lobCardsContainer"></div>
+        </div>
+
+        <!-- View 3: LOB Days Table -->
+        <div id="view-lob-days" class="view-section">
+            <h2 id="lobDaysTitle" style="font-size: 24px; font-weight: 900; color: var(--primary); margin-bottom: 24px;"></h2>
+            <div class="kpi-grid" id="lobDaysKpis"></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>REQ</th>
+                            <th>Actual</th>
+                            <th>ABS %</th>
+                            <th>ABS Hours</th>
+                            <th>Prod. SCH</th>
+                            <th>Total SCH</th>
+                            <th>SCH %</th>
+                            <th>Billable</th>
+                            <th>IC %</th>
+                            <th>Shortage</th>
+                            <th>Overage</th>
+                            <th>Overage %</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lobDaysTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- View 4: Interval Drill Down -->
+        <div id="view-intervals" class="view-section">
+            <h2 id="intervalTitle" style="font-size: 24px; font-weight: 900; color: var(--primary); margin-bottom: 24px;"></h2>
+            <div class="kpi-grid" id="intervalKpis"></div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>REQ</th>
+                            <th>Actual</th>
+                            <th>Billable</th>
+                            <th>Status</th>
+                            <th>IC %</th>
+                            <th>Shortage</th>
+                            <th>Overage</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="intervalTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- View 5: Details / Middle Management -->
+        <div id="view-agent-details" class="view-section">
+            <h2 id="agentDetailTitle" style="font-size: 24px; font-weight: 900; color: var(--primary); margin-bottom: 24px;"></h2>
+            
+            <div class="kpi-grid" id="mmKpis"></div>
+
+            <div class="filter-row">
+                <div style="flex: 2; position:relative;">
+                    <label>Search Agent</label>
+                    <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:16px; top:36px; color:var(--text-muted);"></i>
+                    <input type="text" id="agentSearch" class="search-box" style="padding-left:40px;" placeholder="Name, Email, or HR ID..." onkeyup="filterAgents()">
+                </div>
+                <div style="flex: 1;">
+                    <label>Team Leader</label>
+                    <input list="tlList" id="tlFilter" class="search-box" placeholder="Search TL..." onchange="filterAgents()">
+                    <datalist id="tlList"></datalist>
+                </div>
+                <div style="flex: 1;">
+                    <label>Supervisor (OSV)</label>
+                    <input list="osvList" id="osvFilter" class="search-box" placeholder="Search OSV..." onchange="filterAgents()">
+                    <datalist id="osvList"></datalist>
+                </div>
+            </div>
+            
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>HR ID</th>
+                            <th>Agent Name</th>
+                            <th>Email (SF User)</th>
+                            <th>Team Leader</th>
+                            <th>OSV</th>
+                            <th>Online Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="agentDetailTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 1. Memory & State ---
+        window.loadedFiles = { statusParsed: [], masterWorkbook: null, skillsWorkbook: null, absWorkbook: null };
+        window.agentInfo = {}; 
+        let globalProcessedData = null;
+        let currentShiftMode = 'std';
+        let sortedDates = [];
+        let navState = { view: 'home', lob: null, date: null, sk: null };
+
+        const LOBs = [
+            { id: 'Combined', title: 'Combined', color: 'var(--comb)' },
+            { id: 'TPro', title: 'T-Pro', color: 'var(--tpro)' },
+            { id: 'GHC', title: 'GHC', color: 'var(--ghc)' },
+            { id: 'TMart-FU', title: 'T-Mart Follow Up', color: 'var(--tmart)' }
+        ];
+
+        document.getElementById('startDate').valueAsDate = new Date();
+
+        // Check Local Storage on Load
+        window.onload = function() {
+            let savedData = localStorage.getItem('wfm_globalData');
+            let savedDates = localStorage.getItem('wfm_dates');
+            let savedAgentInfo = localStorage.getItem('wfm_agentInfo');
+            let savedStatus = localStorage.getItem('wfm_statusParsed');
+            
+            if(savedData && savedDates && savedAgentInfo && savedStatus) {
+                try {
+                    globalProcessedData = JSON.parse(savedData);
+                    sortedDates = JSON.parse(savedDates);
+                    window.agentInfo = JSON.parse(savedAgentInfo);
+                    window.loadedFiles.statusParsed = JSON.parse(savedStatus);
+                    
+                    document.getElementById('mainToolbar').style.display = 'none';
+                    document.getElementById('btnReset').style.display = 'block';
+                    navigateTo('home');
+                } catch(e) {
+                    console.log("Error loading saved data", e);
+                }
+            }
+        };
+
+        function resetApp() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        function displayError(msg) {
+            document.getElementById('errorText').textContent = msg;
+            document.getElementById('errorBanner').style.display = 'flex';
+            setTimeout(() => document.getElementById('errorBanner').style.display = 'none', 8000);
+        }
+
+        // --- 2. File Readers ---
+        function attachExcelReader(inputId, targetVar, targetBtn) {
+            document.getElementById(inputId).addEventListener('change', function(e) {
+                if (!e.target.files.length) return;
+                let file = e.target.files[0];
+                document.getElementById(targetBtn).innerText = "Loading...";
+                let reader = new FileReader();
+                reader.onload = function(evt) {
+                    let data = new Uint8Array(evt.target.result);
+                    window.loadedFiles[targetVar] = XLSX.read(data, {type: 'array', cellDates: false}); 
+                    document.getElementById(inputId).parentElement.querySelector('.btn-upload').classList.add('success');
+                    document.getElementById(targetBtn).innerText = file.name;
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        attachExcelReader('inputMaster', 'masterWorkbook', 'btnMasterText');
+        attachExcelReader('inputSkills', 'skillsWorkbook', 'btnSkillsText');
+        attachExcelReader('inputAbs', 'absWorkbook', 'btnAbsText');
+
+        function csvToArray(strData) {
+            var p = new RegExp(("(\\,|\\r?\\n|\\r|^)(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|([^\"\\,\\r\\n]*))"), "gi");
+            var a = [[]], m = null;
+            while (m = p.exec(strData)) {
+                if (m[1].length && m[1] !== ",") a.push([]);
+                var v = m[2] ? m[2].replace(new RegExp("\"\"", "g"), "\"") : m[3];
+                a[a.length - 1].push(v);
+            }
+            if (a.length > 0 && a[a.length-1].length === 1 && a[a.length-1][0] === "") a.pop();
+            return a;
+        }
+
+        document.getElementById('inputStatus').addEventListener('change', function(e) {
+            if (!e.target.files.length) return;
+            let file = e.target.files[0];
+            let btnText = document.getElementById('btnStatusText');
+            btnText.innerText = "Parsing...";
+            let reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    let data = csvToArray(evt.target.result);
+                    if (data.length < 2) { displayError("Status CSV is empty."); return; }
+                    
+                    let headers = data[0].map(h => h ? String(h).trim().toLowerCase() : '');
+                    let eIdx = headers.findIndex(h => h === 'agent_email' || h === 'email' || h.includes('email') || h === 'sf user');
+                    let sIdx = headers.findIndex(h => h === 'status');
+                    let startIdx = headers.findIndex(h => h === 'date' || h === 'start' || h.includes('start'));
+                    let endIdx = headers.findIndex(h => h === 'end_timestamp' || h === 'end' || h.includes('end'));
+
+                    if (eIdx === -1 || startIdx === -1 || sIdx === -1) { displayError("Missing Columns in CSV."); return; }
+
+                    let tempLogs = [];
+                    for(let i=1; i<data.length; i++) {
+                        let row = data[i];
+                        if(!row || row.length <= eIdx || !row[eIdx]) continue;
+                        let status = row[sIdx] ? String(row[sIdx]).toUpperCase().trim() : '';
+                        let st = row[startIdx] ? new Date(row[startIdx].replace(/"/g, '')).getTime() : null;
+                        let en = row[endIdx] && row[endIdx].trim() !== '' ? new Date(row[endIdx].replace(/"/g, '')).getTime() : new Date().getTime();
+                        
+                        if (st && en && !isNaN(st) && !isNaN(en) && status.includes('ONLINE') && en > st) {
+                            let cleanEmail = row[eIdx].toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                            tempLogs.push({ email: cleanEmail, start: st, end: en, name: cleanEmail });
+                        }
+                    }
+
+                    let agentGroups = {};
+                    tempLogs.forEach(log => {
+                        if(!agentGroups[log.email]) agentGroups[log.email] = [];
+                        agentGroups[log.email].push(log);
+                    });
+
+                    window.loadedFiles.statusParsed = [];
+                    Object.keys(agentGroups).forEach(email => {
+                        let logs = agentGroups[email].sort((a, b) => a.start - b.start);
+                        let merged = [logs[0]];
+                        for (let i = 1; i < logs.length; i++) {
+                            let curr = logs[i];
+                            let last = merged[merged.length - 1];
+                            if (curr.start <= last.end) { last.end = Math.max(last.end, curr.end); } 
+                            else { merged.push(curr); }
+                        }
+                        merged.forEach(m => window.loadedFiles.statusParsed.push(m));
+                    });
+
+                    document.getElementById('btnStatus').parentElement.querySelector('.btn-upload').classList.add('success'); 
+                    btnText.innerText = "Log Loaded (" + window.loadedFiles.statusParsed.length + " rows)";
+                } catch(err) { displayError("Error reading Status CSV."); }
+            };
+            reader.readAsText(file, "UTF-8");
+        });
+
+        // --- 3. Utilities ---
+        function formatTimeSecs(totalSeconds) {
+            if (totalSeconds === undefined || totalSeconds === null || totalSeconds <= 0) return "0:00:00";
+            totalSeconds = Math.round(totalSeconds);
+            let h = Math.floor(totalSeconds / 3600);
+            let m = Math.floor((totalSeconds % 3600) / 60);
+            let s = totalSeconds % 60;
+            return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatTimeFromMs(ms) {
+            if (ms <= 0) return "00:00";
+            let totalSeconds = Math.round(ms / 1000);
+            let m = Math.floor(totalSeconds / 60);
+            let s = totalSeconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatPerc(val) { 
+            return (val || 0).toFixed(2) + "%"; 
+        }
+
+        function getDatesInRange(sDateStr, eDateStr) {
+            let dates = [];
+            let curr = new Date(sDateStr + "T00:00:00");
+            let endStr = eDateStr ? eDateStr : sDateStr;
+            let end = new Date(endStr + "T00:00:00");
+            end.setDate(end.getDate() + 1); 
+            while(curr <= end) {
+                let y = curr.getFullYear(), m = String(curr.getMonth()+1).padStart(2,'0'), d = String(curr.getDate()).padStart(2,'0');
+                dates.push(`${y}-${m}-${d}`);
+                curr.setDate(curr.getDate() + 1);
+            }
+            return dates;
+        }
+
+        function groupLOB(raw) {
+            if (!raw) return "Unknown LOB";
+            let l = String(raw).toLowerCase().trim().replace(/[\s\-\_\.]/g, '');
+            if (l.includes('supportnonpilot') || l.includes('supportnonpolit') || l.includes('nonpilot') || l.includes('support')) return "Combined";
+            if (l.includes('tmart') && (l.includes('followup') || l.includes('fu'))) return "TMart-FU";
+            if (l.includes('tmart') || l.includes('fcr') || l.includes('delivery') || l.includes('pickup') || l.includes('dp')) return "Combined";
+            if (l.includes('tpro')) return "TPro";
+            if (l.includes('ghc')) return "GHC";
+            return String(raw).trim(); 
+        }
+
+        function navigateTo(view, lob = null, date = null, sk = null) {
+            navState.view = view; navState.lob = lob; navState.date = date; navState.sk = sk;
+            
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('breadcrumbs').style.display = 'flex';
+            
+            let bcHtml = `<div class="breadcrumb-item" onclick="navigateTo('home')"><i class="fa-solid fa-house"></i> Overview</div>`;
+
+            if(view === 'home') {
+                document.getElementById('breadcrumbs').style.display = 'none';
+                document.getElementById('view-home').classList.add('active');
+                renderHomeView();
+            } 
+            else if (view === 'lob') {
+                bcHtml += `<div class="breadcrumb-sep"><i class="fa-solid fa-chevron-right"></i></div>`;
+                bcHtml += `<div class="breadcrumb-item active">${LOBs.find(l=>l.id===lob).title} Days</div>`;
+                document.getElementById('view-lob-days').classList.add('active');
+                renderLobDaysView();
+            }
+            else if (view === 'interval') {
+                bcHtml += `<div class="breadcrumb-sep"><i class="fa-solid fa-chevron-right"></i></div>`;
+                bcHtml += `<div class="breadcrumb-item" onclick="navigateTo('lob', '${lob}')">${LOBs.find(l=>l.id===lob).title}</div>`;
+                bcHtml += `<div class="breadcrumb-sep"><i class="fa-solid fa-chevron-right"></i></div>`;
+                bcHtml += `<div class="breadcrumb-item active">${date}</div>`;
+                document.getElementById('view-intervals').classList.add('active');
+                renderIntervalsView();
+            }
+            else if (view === 'agents') {
+                let hR = Math.floor(sk / 60), mR = sk % 60;
+                let lbl = `${hR}:${mR === 0 ? '00' : '30'}`;
+                bcHtml += `<div class="breadcrumb-sep"><i class="fa-solid fa-chevron-right"></i></div>`;
+                bcHtml += `<div class="breadcrumb-item" onclick="navigateTo('lob', '${lob}')">${LOBs.find(l=>l.id===lob).title}</div>`;
+                bcHtml += `<div class="breadcrumb-sep"><i class="fa-solid fa-chevron-right"></i></div>`;
+                bcHtml += `<div class="breadcrumb-item" onclick="navigateTo('interval', '${lob}', '${date}')">${date}</div>`;
+                bcHtml += `<div class="breadcrumb-sep"><i class="fa-solid fa-chevron-right"></i></div>`;
+                bcHtml += `<div class="breadcrumb-item active">${lbl} Details</div>`;
+                document.getElementById('view-agent-details').classList.add('active');
+
+                renderAgentDetailsView();
+            }
+            
+            document.getElementById('breadcrumbs').innerHTML = bcHtml;
+        }
+
+        function switchShiftMode(mode) {
+            currentShiftMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + mode).classList.add('active');
+            if(globalProcessedData) navigateTo(navState.view, navState.lob, navState.date, navState.sk);
+        }
+
+        function filterAgents() {
+            let q = document.getElementById('agentSearch').value.toLowerCase();
+            let tl = document.getElementById('tlFilter').value.toLowerCase();
+            let osv = document.getElementById('osvFilter').value.toLowerCase();
+            
+            let rows = document.querySelectorAll('#agentDetailTableBody tr');
+            rows.forEach(r => {
+                let nameHr = r.cells[0].innerText.toLowerCase() + " " + r.cells[1].innerText.toLowerCase() + " " + r.cells[2].innerText.toLowerCase();
+                let rTl = r.cells[3].innerText.toLowerCase();
+                let rOsv = r.cells[4].innerText.toLowerCase();
+                
+                let matchQ = nameHr.includes(q);
+                let matchTl = tl === "" || rTl === tl;
+                let matchOsv = osv === "" || rOsv === osv;
+                
+                r.style.display = (matchQ && matchTl && matchOsv) ? '' : 'none';
+            });
+        }
+
+        // --- 4. Core Parser Engine ---
+        function runAnalysis() {
+            if (!window.loadedFiles.masterWorkbook) { displayError("Please upload the Master Data Excel sheet!"); return; }
+            if (!window.loadedFiles.skillsWorkbook) { displayError("Please upload the Skills Matrix Excel sheet!"); return; }
+            if (!window.loadedFiles.absWorkbook) { displayError("Please upload the ABS Data Excel sheet!"); return; }
+            if (window.loadedFiles.statusParsed.length === 0) { displayError("Please upload the Agent Status CSV!"); return; }
+            
+            let sDate = document.getElementById('startDate').value;
+            let eDate = document.getElementById('endDate').value;
+            if(!sDate) { displayError("Please select a Start Date."); return; }
+
+            document.getElementById('pageLoader').style.display = 'flex';
+
+            setTimeout(() => {
+                try {
+                    let reqDates = getDatesInRange(sDate, eDate);
+                    executeParser(reqDates);
+                    
+                    // Save to Local Storage
+                    try {
+                        localStorage.setItem('wfm_globalData', JSON.stringify(globalProcessedData));
+                        localStorage.setItem('wfm_dates', JSON.stringify(sortedDates));
+                        localStorage.setItem('wfm_agentInfo', JSON.stringify(window.agentInfo));
+                        localStorage.setItem('wfm_statusParsed', JSON.stringify(window.loadedFiles.statusParsed));
+                    } catch(lsErr) {
+                        console.warn("Storage Quota Exceeded. Data will not persist on refresh.");
+                    }
+
+                    document.getElementById('mainToolbar').style.display = 'none';
+                    document.getElementById('btnReset').style.display = 'block';
+                    navigateTo('home');
+                } catch(e) {
+                    displayError("Parsing Error: " + e.toString());
+                } finally {
+                    document.getElementById('pageLoader').style.display = 'none';
+                }
+            }, 100);
+        }
+
+        function parseDurationSecs(val) {
+            if (val === undefined || val === null || val === '') return 0;
+            if (typeof val === 'number') return Math.round(val * 24 * 3600); 
+            var pts = val.toString().replace(/[a-zA-Z\s]/g, '').split(':');
+            var h = parseInt(pts[0], 10) || 0;
+            var m = pts.length > 1 ? parseInt(pts[1], 10) : 0;
+            var s = pts.length > 2 ? parseInt(pts[2], 10) : 0;
+            return (h * 3600) + (m * 60) + s;
+        }
+
+        function parseInterval(str) {
+            let s = String(str).toLowerCase().trim();
+            let isPM = s.includes('pm'), isAM = s.includes('am');
+            let tm = s.replace(/[^0-9:]/g, '').split(':');
+            if (tm.length > 0 && tm[0] !== '') {
+                let th = parseInt(tm[0], 10), tmins = tm.length > 1 ? parseInt(tm[1], 10) : 0;
+                if (isPM && th !== 12) th += 12; if (isAM && th === 12) th = 0;
+                return th * 60 + tmins;
+            }
+            return -1;
+        }
+
+        function executeParser(reqDates) {
+            let dateTargets = reqDates.map(function(dStr) {
+                var dObj = new Date(dStr + "T00:00:00");
+                var mNames = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+                return {
+                    iso: dStr,
+                    strMatch: new RegExp("(^|\\D)0?" + dObj.getDate() + "(?:st|nd|rd|th)?\\-?" + mNames[dObj.getMonth()], "i"),
+                    y: dObj.getFullYear(), m: dObj.getMonth(), d: dObj.getDate(),
+                    monthStr: mNames[dObj.getMonth()]
+                };
+            });
+
+            // 1. Process Skills Matrix
+            window.agentInfo = {};
+            let skillsWb = window.loadedFiles.skillsWorkbook;
+            let sSheetName = skillsWb.SheetNames[0];
+            let sDataDisp = XLSX.utils.sheet_to_json(skillsWb.Sheets[sSheetName], {header: 1, raw: false, defval: ""});
+            
+            let sfUserIdx = -1, hrIdx = -1, nameIdx = -1, tlIdx = -1, osvIdx = -1;
+            let headerRowIdx = -1;
+            let dateColMapSkills = {};
+
+            for(let r=0; r<Math.min(20, sDataDisp.length); r++) {
+                if(!sDataDisp[r]) continue;
+                for(let c=0; c<sDataDisp[r].length; c++) {
+                    let cell = String(sDataDisp[r][c]).toLowerCase().trim();
+                    if(!cell) continue;
+
+                    if(sfUserIdx === -1 && (cell === 'sf user' || cell.includes('email') || cell === 'agent_email')) {
+                        sfUserIdx = c; headerRowIdx = r;
+                    }
+                    if(cell === 'hr id' || cell === 'hr') hrIdx = c;
+                    if(cell === 'agent name' || cell === 'name' || cell === 'agent_name') nameIdx = c;
+                    if(cell === 'tl' || cell === 'team leader') tlIdx = c;
+                    if(cell === 'osv') osvIdx = c;
+
+                    dateTargets.forEach(dt => {
+                        if(dateColMapSkills[dt.iso] === undefined) {
+                            if(dt.strMatch.test(cell)) {
+                                dateColMapSkills[dt.iso] = c;
+                            }
+                        }
+                    });
+                }
+                if(sfUserIdx !== -1) break;
+            }
+
+            if(sfUserIdx !== -1) {
+                for(let row = headerRowIdx + 1; row < sDataDisp.length; row++) {
+                    let email = sDataDisp[row][sfUserIdx];
+                    if(email) {
+                        let cleanEmail = email.toString().toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                        window.agentInfo[cleanEmail] = {
+                            hr: hrIdx !== -1 ? sDataDisp[row][hrIdx] : '-',
+                            name: nameIdx !== -1 ? sDataDisp[row][nameIdx] : cleanEmail,
+                            tl: tlIdx !== -1 ? sDataDisp[row][tlIdx] : '-',
+                            osv: osvIdx !== -1 ? sDataDisp[row][osvIdx] : '-',
+                            lobs: {}
+                        };
+                        
+                        dateTargets.forEach(dt => {
+                            let cIdx = dateColMapSkills[dt.iso];
+                            if(cIdx !== undefined) {
+                                let lob = sDataDisp[row][cIdx];
+                                if(lob) {
+                                    let cleanLob = lob.toString().trim();
+                                    if(cleanLob && cleanLob !== '-') {
+                                        window.agentInfo[cleanEmail].lobs[dt.iso] = groupLOB(cleanLob);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+
+            // 2. Process ABS & HC Data exactly as per image
+            let absWb = window.loadedFiles.absWorkbook;
+            let dailyAbsData = {}; 
+            let absSheet = absWb.Sheets[absWb.SheetNames[0]]; 
+            let absDataDisp = XLSX.utils.sheet_to_json(absSheet, {header: 1, raw: false, defval: ""});
+            let absDataRaw = XLSX.utils.sheet_to_json(absSheet, {header: 1, raw: true, defval: ""});
+
+            let dateColsAbs = {}; 
+            for(let r=0; r<Math.min(10, absDataDisp.length); r++) {
+                let foundDate = false;
+                for(let c=0; c<absDataDisp[r].length; c++) {
+                    let cell = String(absDataDisp[r][c]).trim();
+                    dateTargets.forEach(dt => {
+                        if(dt.strMatch.test(cell) || cell.includes(dt.d + "-" + dt.monthStr)) {
+                            dateColsAbs[c] = dt.iso;
+                            foundDate = true;
+                        }
+                    });
+                }
+                if(foundDate) break; 
+            }
+
+            Object.keys(dateColsAbs).forEach(c => {
+                let iso = dateColsAbs[c];
+                dailyAbsData[iso] = {};
+                for(let r=0; r<absDataDisp.length; r++) {
+                    let val = String(absDataDisp[r][c]).toLowerCase().replace(/[\s\-\_\.]/g, '');
+                    let matchedLob = null;
+                    if(val === 'combined') matchedLob = 'Combined';
+                    else if(val === 'tpro' || val === 't-pro') matchedLob = 'TPro';
+                    else if(val === 'ghc') matchedLob = 'GHC';
+                    else if(val.includes('tmart') && (val.includes('fu') || val.includes('followup'))) matchedLob = 'TMart-FU';
+
+                    if(matchedLob) {
+                        let hcRaw = absDataRaw[r+1] ? absDataRaw[r+1][c] : 0;
+                        let absRaw = absDataRaw[r+3] ? absDataRaw[r+3][c] : 0;
+                        let absPercRaw = absDataRaw[r+4] ? absDataRaw[r+4][c] : 0;
+
+                        let absPercVal = 0;
+                        if (typeof absPercRaw === 'number') absPercVal = absPercRaw * 100;
+                        else absPercVal = parseFloat(String(absPercRaw).replace('%', ''));
+
+                        dailyAbsData[iso][matchedLob] = {
+                            hc: parseDurationSecs(hcRaw), 
+                            abs: parseDurationSecs(absRaw),
+                            absPerc: isNaN(absPercVal) ? 0 : absPercVal
+                        };
+                    }
+                }
+            });
+
+            // 3. Initialize Master Data storage
+            let dailyRawData = {}; 
+            sortedDates = [];
+            for(let i=0; i<reqDates.length - 1; i++) {
+                let dIso = reqDates[i];
+                sortedDates.push(dIso);
+                dailyRawData[dIso] = {};
+                LOBs.forEach(lob => {
+                    dailyRawData[dIso][lob.id] = {};
+                    for(let k=0; k<=1410; k+=30) {
+                        dailyRawData[dIso][lob.id][k] = { req:0, act:0, bill:0, over:0, lost:0 };
+                    }
+                });
+            }
+
+            let masterWb = window.loadedFiles.masterWorkbook;
+            masterWb.SheetNames.forEach(sNameOriginal => {
+                var sInfo = masterWb.Workbook && masterWb.Workbook.Sheets ? masterWb.Workbook.Sheets.find(s => s.name === sNameOriginal) : null;
+                if(sInfo && sInfo.Hidden !== 0) return;
+
+                let sName = sNameOriginal.toLowerCase().trim();
+                let matchedDt = dateTargets.find(dt => dt.strMatch.test(sName));
+                if(!matchedDt || !dailyRawData[matchedDt.iso]) return;
+                
+                let dIso = matchedDt.iso;
+                let sheetData = XLSX.utils.sheet_to_json(masterWb.Sheets[sNameOriginal], {header: 1, raw: false, defval: ""});
+
+                let lobCols = {};
+                for(let r=0; r<Math.min(10, sheetData.length); r++) {
+                    if(!sheetData[r]) continue;
+                    for(let c=0; c<sheetData[r].length; c++) {
+                        let val = String(sheetData[r][c]).toLowerCase().replace(/[\s\-\_\.]/g, '');
+                        let matchedLob = null;
+                        if(val === 'combined') matchedLob = 'Combined';
+                        else if(val === 'tpro' || val === 't-pro') matchedLob = 'TPro';
+                        else if(val === 'ghc') matchedLob = 'GHC';
+                        else if(val.includes('tmart') && (val.includes('fu') || val.includes('followup'))) matchedLob = 'TMart-FU';
+
+                        if(matchedLob && !lobCols[matchedLob]) {
+                            let intCol = -1;
+                            let dataRow = -1;
+                            for(let r2=r; r2<Math.min(r+6, sheetData.length); r2++) {
+                                if(!sheetData[r2]) continue;
+                                for(let c2=Math.max(0, c-4); c2<=c+4; c2++) {
+                                    if(String(sheetData[r2][c2]).toLowerCase().includes('interval')) {
+                                        intCol = c2;
+                                        dataRow = r2 + 1;
+                                        break;
+                                    }
+                                }
+                                if(intCol !== -1) break;
+                            }
+                            if(intCol !== -1) {
+                                lobCols[matchedLob] = { r: dataRow, c: intCol };
+                            }
+                        }
+                    }
+                }
+
+                Object.keys(lobCols).forEach(lobId => {
+                    let startRow = lobCols[lobId].r; 
+                    for(let r=startRow; r<sheetData.length; r++) {
+                        if(!sheetData[r]) continue;
+                        let intStr = String(sheetData[r][lobCols[lobId].c]).trim();
+                        if(!intStr || intStr.toLowerCase().includes('total')) continue;
+                        
+                        let sk = parseInterval(intStr);
+                        if(sk !== -1 && dailyRawData[dIso][lobId][sk]) {
+                            let req = parseDurationSecs(sheetData[r][lobCols[lobId].c + 1]);
+                            let act = parseDurationSecs(sheetData[r][lobCols[lobId].c + 2]);
+                            let bill = parseDurationSecs(sheetData[r][lobCols[lobId].c + 3]);
+                            let over = parseDurationSecs(sheetData[r][lobCols[lobId].c + 4]);
+                            let lost = parseDurationSecs(sheetData[r][lobCols[lobId].c + 5]);
+
+                            dailyRawData[dIso][lobId][sk] = { req: req, act: act, bill: bill, over: over, lost: lost };
+                        }
+                    }
+                });
+            });
+
+            // 4. Structure Data for STD / OVN
+            globalProcessedData = { lobs: {} };
+            LOBs.forEach(l => globalProcessedData.lobs[l.id] = { dates: {} });
+
+            sortedDates.forEach(dIso => {
+                let dtNext = new Date(dIso + "T00:00:00"); dtNext.setDate(dtNext.getDate() + 1);
+                let nxStr = dtNext.toISOString().split('T')[0];
+
+                LOBs.forEach(lobConf => {
+                    let lob = lobConf.id;
+                    let absStats = dailyAbsData[dIso] && dailyAbsData[dIso][lob] ? dailyAbsData[dIso][lob] : {hc:0, abs:0, absPerc:0};
+                    
+                    let stdInts = [], ovnInts = [];
+                    for(let k=0; k<=1410; k+=30) {
+                        let obj = dailyRawData[dIso][lob][k] || {req:0, act:0, bill:0, over:0, lost:0};
+                        stdInts.push({ sk: k, iso: dIso, req: obj.req, act: obj.act, bill: obj.bill, over: obj.over, lost: obj.lost });
+                    }
+                    for(let k=480; k<=1410; k+=30) {
+                        let obj = dailyRawData[dIso][lob][k] || {req:0, act:0, bill:0, over:0, lost:0};
+                        ovnInts.push({ sk: k, iso: dIso, req: obj.req, act: obj.act, bill: obj.bill, over: obj.over, lost: obj.lost });
+                    }
+                    if(dailyRawData[nxStr] && dailyRawData[nxStr][lob]) {
+                        for(let k=0; k<=450; k+=30) {
+                            let obj = dailyRawData[nxStr][lob][k] || {req:0, act:0, bill:0, over:0, lost:0};
+                            ovnInts.push({ sk: k, iso: nxStr, req: obj.req, act: obj.act, bill: obj.bill, over: obj.over, lost: obj.lost });
+                        }
+                    }
+
+                    globalProcessedData.lobs[lob].dates[dIso] = {
+                        std: aggregateShift(stdInts, absStats),
+                        ovn: aggregateShift(ovnInts, absStats)
+                    };
+                });
+            });
+        }
+
+        function aggregateShift(intervals, absStats) {
+            let dayData = { req: 0, act: 0, bill: 0, over: 0, lost: 0, hc: absStats.hc, abs: absStats.abs, absPerc: absStats.absPerc, intervals: intervals };
+            intervals.forEach(intObj => {
+                dayData.req += intObj.req;
+                dayData.act += intObj.act;
+                dayData.bill += intObj.bill;
+            });
+
+            // STRICT NET OVERAGE / SHORTAGE logic
+            if(dayData.act > dayData.req) {
+                dayData.over = dayData.act - dayData.req;
+                dayData.lost = 0;
+            } else {
+                dayData.lost = dayData.req - dayData.act;
+                dayData.over = 0;
+            }
+            return dayData;
+        }
+
+        // --- 5. Render Functions ---
+        function renderHomeView() {
+            let html = '';
+            LOBs.forEach(lobConf => {
+                let lReq=0, lAct=0, lBill=0;
+                sortedDates.forEach(dIso => {
+                    let d = globalProcessedData.lobs[lobConf.id].dates[dIso][currentShiftMode];
+                    lReq += d.req; lAct += d.act; lBill += d.bill;
+                });
+                
+                // Real Overall IC% (Billable / REQ) - Reflects Dropped Intervals precisely
+                let ic = lReq === 0 ? 100 : (lBill / lReq) * 100;
+
+                html += `
+                    <div class="lob-card ${lobConf.id}" onclick="navigateTo('lob', '${lobConf.id}')">
+                        <h3>${lobConf.title} <i class="fa-solid fa-arrow-right"></i></h3>
+                        <div class="lob-stat"><span class="stat-label">REQ</span><span class="stat-value">${formatTimeSecs(lReq)}</span></div>
+                        <div class="lob-stat"><span class="stat-label">Actual</span><span class="stat-value">${formatTimeSecs(lAct)}</span></div>
+                        <div class="lob-stat"><span class="stat-label">Billable</span><span class="stat-value val-accent">${formatTimeSecs(lBill)}</span></div>
+                        <div class="lob-stat"><span class="stat-label">IC %</span><span class="stat-value ${ic >= 100 ? 'ic-pass' : 'ic-fail'}">${formatPerc(ic)}</span></div>
+                    </div>
+                `;
+            });
+            document.getElementById('lobCardsContainer').innerHTML = html;
+        }
+
+        function renderLobDaysView() {
+            let lobId = navState.lob;
+            let lobConf = LOBs.find(l=>l.id===lobId);
+            document.getElementById('lobDaysTitle').innerText = lobConf.title + " Daily Breakdown";
+            
+            let html = '';
+            let tReq=0, tAct=0, tBill=0, tOver=0, tLost=0, tHc=0, tAbs=0;
+
+            sortedDates.forEach(dIso => {
+                let d = globalProcessedData.lobs[lobId].dates[dIso][currentShiftMode];
+                if(d.req > 0 || d.act > 0 || d.hc > 0) {
+                    tReq += d.req; tAct += d.act; tBill += d.bill; tOver += d.over; tLost += d.lost; tHc += d.hc; tAbs += d.abs;
+                    
+                    let schHrs = d.hc * 0.89; // Prod SCH
+                    let schPerc = d.req > 0 ? (schHrs / d.req) * 100 : 0; // Updated SCH% formula
+                    
+                    let ic = d.req === 0 ? 100 : (d.bill / d.req) * 100;
+                    let ovPerc = d.req > 0 ? (d.over / d.req) * 100 : 0;
+
+                    html += `<tr>
+                        <td class="val-bold">${dIso}</td>
+                        <td class="val-bold" style="background:#f8fafc;">${formatTimeSecs(d.req)}</td>
+                        <td class="val-bold">${formatTimeSecs(d.act)}</td>
+                        <td class="val-danger">${formatPerc(d.absPerc)}</td>
+                        <td class="val-danger">${formatTimeSecs(d.abs)}</td>
+                        <td class="val-bold" style="color:var(--text-muted)">${formatTimeSecs(schHrs)}</td>
+                        <td class="val-bold" style="color:var(--text-muted)">${formatTimeSecs(d.hc)}</td>
+                        <td class="val-bold" style="color:var(--text-muted)">${formatPerc(schPerc)}</td>
+                        <td class="val-accent">${formatTimeSecs(d.bill)}</td>
+                        <td class="${ic >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(ic)}</td>
+                        <td class="val-danger">${formatTimeSecs(d.lost)}</td>
+                        <td class="val-success">${formatTimeSecs(d.over)}</td>
+                        <td class="val-success">${formatPerc(ovPerc)}</td>
+                        <td><a class="action-link" onclick="navigateTo('interval', '${lobId}', '${dIso}')">Intervals <i class="fa-solid fa-arrow-right"></i></a></td>
+                    </tr>`;
+                }
+            });
+
+            let netOver = 0, netLost = 0;
+            if(tAct > tReq) { netOver = tAct - tReq; netLost = 0; }
+            else { netLost = tReq - tAct; netOver = 0; }
+
+            let tSchHrs = tHc * 0.89;
+            let tAbsPerc = tHc > 0 ? (tAbs / tHc) * 100 : 0;
+            let tSchPerc = tReq > 0 ? (tSchHrs / tReq) * 100 : 0; // Updated SCH% formula
+            let tOvPerc = tReq > 0 ? (netOver / tReq) * 100 : 0;
+            let mIc = tReq === 0 ? 100 : (tBill / tReq) * 100;
+
+            html += `<tr class="row-total">
+                <td>Total</td>
+                <td class="val-bold" style="background:#f8fafc;">${formatTimeSecs(tReq)}</td>
+                <td class="val-bold">${formatTimeSecs(tAct)}</td>
+                <td class="val-danger">${formatPerc(tAbsPerc)}</td>
+                <td class="val-danger">${formatTimeSecs(tAbs)}</td>
+                <td class="val-bold" style="color:var(--text-muted)">${formatTimeSecs(tSchHrs)}</td>
+                <td class="val-bold" style="color:var(--text-muted)">${formatTimeSecs(tHc)}</td>
+                <td class="val-bold" style="color:var(--text-muted)">${formatPerc(tSchPerc)}</td>
+                <td class="val-accent">${formatTimeSecs(tBill)}</td>
+                <td class="${mIc >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(mIc)}</td>
+                <td class="val-danger">${formatTimeSecs(netLost)}</td>
+                <td class="val-success">${formatTimeSecs(netOver)}</td>
+                <td class="val-success">${formatPerc(tOvPerc)}</td>
+                <td>-</td>
+            </tr>`;
+            document.getElementById('lobDaysTableBody').innerHTML = html;
+        }
+
+        function renderIntervalsView() {
+            let lobId = navState.lob;
+            let dIso = navState.date;
+            document.getElementById('intervalTitle').innerText = `Interval Breakdown: ${LOBs.find(l=>l.id===lobId).title} (${dIso})`;
+
+            let d = globalProcessedData.lobs[lobId].dates[dIso][currentShiftMode];
+            let html = '';
+
+            d.intervals.forEach(intObj => {
+                if(intObj.req > 0 || intObj.act > 0) {
+                    let hR = Math.floor(intObj.sk / 60), mR = intObj.sk % 60;
+                    let lbl = `${hR}:${mR === 0 ? '00' : '30'}`;
+                    
+                    let ic = intObj.req === 0 ? 100 : (intObj.act / intObj.req) * 100;
+                    let isPass = intObj.act >= intObj.req;
+
+                    html += `<tr>
+                        <td class="val-bold">${intObj.iso} ${lbl}</td>
+                        <td class="val-bold" style="background:#f8fafc;">${formatTimeSecs(intObj.req)}</td>
+                        <td class="val-bold">${formatTimeSecs(intObj.act)}</td>
+                        <td class="val-accent">${formatTimeSecs(intObj.bill)}</td>
+                        <td class="${isPass ? 'val-success' : 'val-danger'}">${isPass ? 'Pass' : 'Fail'}</td>
+                        <td class="${isPass ? 'val-success' : 'val-danger'}">${formatPerc(ic)}</td>
+                        <td class="val-danger">${formatTimeSecs(intObj.lost)}</td>
+                        <td class="val-success">${formatTimeSecs(intObj.over)}</td>
+                        <td><a class="action-link" onclick="navigateTo('agents', '${lobId}', '${dIso}', ${intObj.sk})" style="background:var(--bg-main); border-color:var(--border); color:var(--primary); font-size:11px;"><i class="fa-solid fa-users"></i> View Details</a></td>
+                    </tr>`;
+                }
+            });
+
+            document.getElementById('intervalTableBody').innerHTML = html !== '' ? html : '<tr><td colspan="9" style="text-align:center;">No Intervals Data</td></tr>';
+        }
+
+        // --- 6. Middle Management (View Details) ---
+        function renderAgentDetailsView() {
+            let lobId = navState.lob;
+            let dIso = navState.date;
+            let sk = navState.sk;
+            
+            let hR = Math.floor(sk / 60), mR = sk % 60;
+            let lbl = `${hR}:${mR === 0 ? '00' : '30'}`;
+            document.getElementById('agentDetailTitle').innerText = `Details: ${LOBs.find(l=>l.id===lobId).title} (${dIso} @ ${lbl})`;
+
+            let dayD = globalProcessedData.lobs[lobId].dates[dIso][currentShiftMode];
+            let intObj = dayD.intervals.find(x => x.sk === sk);
+
+            let intStartMs = new Date(dIso + "T00:00:00").getTime() + (sk * 60000);
+            let intEndMs = intStartMs + 30 * 60000;
+            
+            let agentsOnline = [];
+            
+            window.loadedFiles.statusParsed.forEach(log => {
+                if (log.end <= intStartMs || log.start >= intEndMs) return;
+                
+                let info = window.agentInfo[log.email] || { hr: '-', name: log.email, tl: '-', osv: '-', lobs: {} };
+                let effLob = info.lobs[dIso] || 'Unknown LOB';
+                
+                if(effLob === lobId) {
+                    let overlapStart = Math.max(log.start, intStartMs);
+                    let overlapEnd = Math.min(log.end, intEndMs);
+                    let durMs = overlapEnd - overlapStart;
+                    
+                    if(durMs > 0) {
+                        let existing = agentsOnline.find(a => a.email === log.email);
+                        if(existing) {
+                            existing.durMs += durMs;
+                        } else {
+                            agentsOnline.push({
+                                email: log.email, hr: info.hr, name: info.name, tl: info.tl, osv: info.osv, durMs: durMs
+                            });
+                        }
+                    }
+                }
+            });
+
+            agentsOnline.sort((a,b) => b.durMs - a.durMs);
+
+            let tls = new Set();
+            let osvs = new Set();
+            agentsOnline.forEach(a => {
+                if(a.tl && a.tl !== '-') tls.add(a.tl);
+                if(a.osv && a.osv !== '-') osvs.add(a.osv);
+            });
+            
+            let tlHtml = '<option value="">All Team Leaders</option>';
+            Array.from(tls).sort().forEach(t => tlHtml += `<option value="${t}">${t}</option>`);
+            document.getElementById('tlList').innerHTML = tlHtml;
+            
+            let osvHtml = '<option value="">All Supervisors</option>';
+            Array.from(osvs).sort().forEach(o => osvHtml += `<option value="${o}">${o}</option>`);
+            document.getElementById('osvList').innerHTML = osvHtml;
+
+            let html = '';
+            agentsOnline.forEach(a => {
+                html += `<tr>
+                    <td class="val-bold" style="color:var(--text-muted)">${a.hr}</td>
+                    <td style="font-weight:700;">${a.name}</td>
+                    <td>${a.email}</td>
+                    <td>${a.tl}</td>
+                    <td>${a.osv}</td>
+                    <td class="val-bold val-success">${formatTimeFromMs(a.durMs)}</td>
+                </tr>`;
+            });
+            document.getElementById('agentDetailTableBody').innerHTML = html !== '' ? html : '<tr><td colspan="6" style="text-align:center;">No Agents found online.</td></tr>';
+
+            if(intObj) {
+                let ic = intObj.req === 0 ? 100 : (intObj.act / intObj.req) * 100;
+                document.getElementById('mmKpis').innerHTML = `
+                    <div class="kpi-card" style="border-top-color:var(--tpro)"><div class="kpi-title">Interval REQ</div><div class="kpi-val">${formatTimeSecs(intObj.req)}</div></div>
+                    <div class="kpi-card" style="border-top-color:var(--accent)"><div class="kpi-title">Interval Actual</div><div class="kpi-val">${formatTimeSecs(intObj.act)}</div></div>
+                    <div class="kpi-card" style="border-top-color:var(--text-muted)"><div class="kpi-title">Agents Online</div><div class="kpi-val">${agentsOnline.length}</div></div>
+                    <div class="kpi-card" style="border-top-color:var(--success)"><div class="kpi-title">Actual IC%</div><div class="kpi-val ${ic >= 100 ? 'val-success' : 'val-danger'}">${formatPerc(ic)}</div></div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

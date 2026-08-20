@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login • WFM Operations</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        background: #f4f4f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .login-wrapper {
+        width: 100%;
+        max-width: 400px;
+        padding: 24px;
+      }
+      .login-card {
+        background: white;
+        border: 1px solid #e4e4e7;
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      }
+      .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .login-header h2 {
+        margin: 0;
+        color: #0f172a;
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .login-header p {
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+      .input-group {
+        margin-bottom: 20px;
+      }
+      .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #334155;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .input-wrapper input {
+        width: 100%;
+        height: 48px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        padding: 0 16px;
+        color: #0f172a;
+        font-size: 0.95rem;
+        outline: none;
+        transition: 0.2s ease;
+      }
+      .input-wrapper input:focus {
+        border-color: #006fee;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(0, 111, 238, 0.15);
+      }
+      .btn-primary {
+        width: 100%;
+        height: 48px;
+        border: none;
+        border-radius: 8px;
+        background: #006fee;
+        color: white;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s ease;
+        margin-top: 10px;
+      }
+      .btn-primary:hover {
+        background: #005bc4;
+      }
+      .error-msg {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        text-align: center;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-wrapper">
+      <div class="login-card">
+        <div class="login-header">
+          <h2>WFM Operations</h2>
+          <p>Please authenticate to access the portal</p>
+        </div>
+        <form id="loginForm">
+          <div class="input-group">
+            <label>Username</label>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="username"
+                placeholder="Enter your username"
+                required
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Password</label>
+            <div class="input-wrapper">
+              <input
+                type="password"
+                id="password"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" id="loginBtn">
+            Sign In Securely
+          </button>
+          <div id="errorMsg" class="error-msg">
+            Invalid username or password
+          </div>
+        </form>
+      </div>
+    </div>
+    <script>
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const btn = document.getElementById("loginBtn");
+          const err = document.getElementById("errorMsg");
+          btn.textContent = "Checking...";
+          btn.disabled = true;
+          err.style.display = "none";
+          try {
+            const res = await fetch("/api/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username: document.getElementById("username").value.trim(),
+                password: document.getElementById("password").value.trim(),
+              }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              window.location.href = "/";
+            } else {
+              err.style.display = "block";
+              btn.textContent = "Sign In Securely";
+              btn.disabled = false;
+            }
+          } catch (error) {
+            err.textContent = "Server connection error";
+            err.style.display = "block";
+            btn.textContent = "Sign In Securely";
+            btn.disabled = false;
+          }
+        });
+    </script>
+  </body>
+</html>

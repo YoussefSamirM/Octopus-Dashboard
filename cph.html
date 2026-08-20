@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CPH Calc</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-body: #f4f7f9; --bg-surface: #ffffff;
+            --text-main: #1e293b; --text-muted: #64748b;
+            --border: #e2e8f0; --primary: #0f172a; --primary-hover: #334155;
+            --accent: #2563eb;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-main); font-size: 13px; -webkit-font-smoothing: antialiased; }
+
+        .top-nav { background: var(--primary); padding: 14px 32px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .top-nav h1 { font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px; }
+
+        .layout-container { max-width: 1600px; margin: 24px auto; padding: 0 24px; min-height: 80vh; }
+
+        .toolbar { display: flex; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px 20px; align-items: center; justify-content: space-between; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        
+        .upload-group { display: flex; gap: 16px; align-items: center; }
+        .upload-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text-main); background: #f8fafc; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .upload-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .upload-btn.success { color: #15803d; border-color: #bbf7d0; background: #f0fdf4; }
+        
+        .status-badge { font-size: 12px; font-weight: 500; color: var(--text-muted); display: flex; align-items: center; gap: 6px; padding-left: 16px; border-left: 1px solid var(--border); }
+        .status-badge.ready { color: #2563eb; }
+
+        .tabs { display: flex; gap: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+        .tab-btn { padding: 10px 4px; background: transparent; border: none; border-bottom: 2px solid transparent; font-size: 14px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .site-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .site-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-surface); cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-muted); transition: 0.2s; }
+        .site-btn.active { background: #e2e8f0; color: var(--primary); border-color: #cbd5e1; font-weight: 600; }
+
+        .filter-row { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 24px; background: var(--bg-surface); padding: 16px 20px; border: 1px solid var(--border); border-radius: 6px; }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
+        .filter-group label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; }
+        .filter-input-wrap { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; background: #fff; }
+        .filter-input-wrap i { padding: 0 10px; color: var(--text-muted); background: #f8fafc; border-right: 1px solid var(--border); height: 100%; display: flex; align-items: center; }
+        .filter-input-wrap input { border: none; padding: 8px 12px; font-size: 13px; font-family: 'Inter', sans-serif; color: var(--text-main); outline: none; width: 190px; }
+        .filter-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+        
+        .btn { padding: 0 20px; height: 35px; background: var(--primary); color: white; border: none; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-export { background: #166534; }
+        .btn-export:hover { background: #14532d; }
+
+        .kpi-row { display: flex; gap: 20px; margin-bottom: 24px; }
+        .kpi-card { flex: 1; background: var(--bg-surface); border: 1px solid var(--border); padding: 20px; border-radius: 6px; display: flex; flex-direction: column; gap: 4px; }
+        .kpi-card span { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; }
+        .kpi-card strong { font-size: 24px; font-weight: 700; color: var(--text-main); }
+
+        .panel-full { width: 100%; margin-bottom: 24px; }
+        .panel-row { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+        .panel-half { flex: 1 1 calc(50% - 12px); min-width: 300px; display: flex; flex-direction: column; }
+
+        .data-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.02); height: 100%; }
+        .panel-header { padding: 14px 20px; border-bottom: 1px solid var(--border); font-weight: 600; background: #f8fafc; font-size: 13px; color: var(--primary); }
+        
+        .table-container { overflow-y: auto; flex-grow: 1; max-height: 450px; }
+        
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 10px 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); background: #ffffff; white-space: nowrap; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 0 var(--border); }
+        td { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        tr:hover td { background: #f8fafc; }
+        
+        tfoot { position: sticky; bottom: 0; z-index: 10; }
+        tfoot td { background: #f1f5f9 !important; font-weight: 700; color: var(--primary); border-top: 2px solid #cbd5e1; border-bottom: none; box-shadow: 0 -1px 0 #cbd5e1; }
+        
+        .center { text-align: center; }
+        
+        .error-banner { display: none; background: #fef2f2; color: #991b1b; padding: 12px 24px; border-bottom: 1px solid #fecaca; font-weight: 500; font-size: 13px; text-align: center; position: sticky; top: 0; z-index: 9999; }
+        
+        #pageLoader { position: fixed; inset: 0; background: var(--bg-surface); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s ease; }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+        .loader-text { font-size: 14px; font-weight: 500; color: var(--text-main); }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .app-footer { text-align: center; padding: 20px; margin-top: 16px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+    <div id="pageLoader">
+        <div class="spinner"></div>
+        <div class="loader-text">Loading...</div>
+    </div>
+
+    <div class="error-banner" id="errorBanner"><i class="fa-solid fa-circle-exclamation"></i> <span id="errorText"></span></div>
+
+    <div class="top-nav">
+        <h1><i class="fa-solid fa-layer-group"></i>CPH Calc</h1>
+    </div>
+
+    <div class="layout-container">
+        
+        <div class="toolbar">
+            <div class="upload-group">
+                <div class="upload-btn" id="btnChats" onclick="document.getElementById('inputChats').click()">
+                    <i class="fa-solid fa-file-csv"></i> <span>1. Chats Log</span>
+                </div>
+                <input type="file" id="inputChats" accept=".csv" style="display:none;">
+                
+                <div class="upload-btn" id="btnStatus" onclick="document.getElementById('inputStatus').click()">
+                    <i class="fa-regular fa-clock"></i> <span>2. Agent Status</span>
+                </div>
+                <input type="file" id="inputStatus" accept=".csv" style="display:none;">
+                
+                <div class="status-badge" id="distroStatus">
+                    <i class="fa-solid fa-spinner fa-spin"></i> <span id="distroLabel">Fetching Directory...</span>
+                </div>
+            </div>
+            
+            <div class="site-tabs" id="siteFilters" style="margin:0;">
+                <button class="site-btn active" onclick="setSiteFilter('All')">All Sites</button>
+                <button class="site-btn" onclick="setSiteFilter('Alex')">Alexandria</button>
+                <button class="site-btn" onclick="setSiteFilter('Assiut')">Assiut</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(this, 'cphView')">CPH</button>
+            <button class="tab-btn" onclick="switchTab(this, 'ahtView')">AHT</button>
+        </div>
+
+        <!-- CPH View -->
+        <div id="cphView" class="tab-content active">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Start Boundary</label>
+                    <div class="filter-input-wrap">
+                        <i class="fa-regular fa-calendar"></i>
+                        <input type="datetime-local" id="filterStart">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>End Boundary</label>
+                    <div class="filter-input-wrap">
+                        <i class="fa-regular fa-calendar-check"></i>
+                        <input type="datetime-local" id="filterEnd">
+                    </div>
+                </div>
+                <button class="btn" onclick="processCPH(); processAHT();"><i class="fa-solid fa-filter"></i> Apply Filters</button>
+                
+                <div style="flex-grow:1; text-align:right;">
+                    <button class="btn btn-export" onclick="exportCPHReport(this)">
+                        <i class="fa-solid fa-file-excel"></i> Export CPH
+                    </button>
+                </div>
+            </div>
+
+            <div class="kpi-row">
+                <div class="kpi-card"><span>Total Handled Chats</span><strong id="kpiFilteredChats">0</strong></div>
+                <div class="kpi-card"><span>Active Agents</span><strong id="kpiActiveAgents">0</strong></div>
+                <div class="kpi-card"><span>Net Occupied Hours</span><strong id="kpiTotalHours">0.00</strong></div>
+            </div>
+
+            <div class="panel-full">
+                <div class="data-panel">
+                    <div class="panel-header">View per Agent</div>
+                    <div class="table-container" style="max-height: 400px;">
+                        <table id="cphTable">
+                            <thead>
+                                <tr>
+                                    <th>HR</th><th>Agent Name</th><th>Site</th><th>LOB</th><th>TL</th><th>SPV</th>
+                                    <th class="center">Chats</th><th class="center">AHT</th><th class="center">Net Aux Hours</th><th class="center">CPH</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cphTableBody"><tr><td colspan="10" class="center" style="color:var(--text-muted);">Awaiting dataset streams.</td></tr></tbody>
+                            <tfoot id="cphTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OVERALL LOB VIEWS (INTERVAL BASED) -->
+            <div class="panel-row">
+                <div class="panel-half data-panel">
+                    <div class="panel-header">View per interval (Combined LOB)</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="cphCombinedTable">
+                            <thead>
+                                <tr><th class="center">Interval</th><th class="center">Chats</th><th class="center">AHT</th><th class="center">Net Aux Hours</th><th class="center">CPH</th></tr>
+                            </thead>
+                            <tbody id="cphCombinedTableBody"><tr><td colspan="5" class="center" style="color:var(--text-muted);">No logs parsed.</td></tr></tbody>
+                            <tfoot id="cphCombinedTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-half data-panel">
+                    <div class="panel-header">View per interval (T-Pro LOB)</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="cphTProTable">
+                            <thead>
+                                <tr><th class="center">Interval</th><th class="center">Chats</th><th class="center">AHT</th><th class="center">Net Aux Hours</th><th class="center">CPH</th></tr>
+                            </thead>
+                            <tbody id="cphTProTableBody"><tr><td colspan="5" class="center" style="color:var(--text-muted);">No logs parsed.</td></tr></tbody>
+                            <tfoot id="cphTProTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-row">
+                <div class="panel-half data-panel">
+                    <div class="panel-header">View per SV</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="cphSvTable">
+                            <thead>
+                                <tr><th>Supervisor</th><th class="center">Chats</th><th class="center">AHT</th><th class="center">Aux Hrs</th><th class="center">CPH</th></tr>
+                            </thead>
+                            <tbody id="cphSvTableBody"><tr><td colspan="5" class="center" style="color:var(--text-muted);">No logs parsed.</td></tr></tbody>
+                            <tfoot id="cphSvTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-half data-panel">
+                    <div class="panel-header">View per TL</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="cphTlTable">
+                            <thead>
+                                <tr><th>Team Leader</th><th>SPV</th><th class="center">Chats</th><th class="center">AHT</th><th class="center">Aux Hrs</th><th class="center">CPH</th></tr>
+                            </thead>
+                            <tbody id="cphTlTableBody"><tr><td colspan="6" class="center" style="color:var(--text-muted);">No logs parsed.</td></tr></tbody>
+                            <tfoot id="cphTlTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-full">
+                <div class="data-panel">
+                    <div class="panel-header">View per interval (All Sites)</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="cphIntervalTable">
+                            <thead>
+                                <tr>
+                                    <th class="center">Interval</th><th class="center">Chats</th><th class="center">AHT</th><th class="center">Net Aux Hours</th><th class="center">CPH</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cphIntervalTableBody"><tr><td colspan="5" class="center" style="color:var(--text-muted);">No intervals mapped.</td></tr></tbody>
+                            <tfoot id="cphIntervalTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AHT View -->
+        <div id="ahtView" class="tab-content">
+            <div class="filter-row" style="margin-bottom: 24px; padding-bottom: 0; border: none; background: transparent;">
+                <div style="flex-grow:1; text-align:right;">
+                    <button class="btn btn-export" onclick="exportAHTReport(this)">
+                        <i class="fa-solid fa-file-excel"></i> Export AHT
+                    </button>
+                </div>
+            </div>
+
+            <div class="kpi-row">
+                <div class="kpi-card"><span>Total Handled Chats</span><strong id="kpiAhtChats">0</strong></div>
+                <div class="kpi-card"><span>Overall System AHT</span><strong id="kpiAhtTotal">0.00s</strong></div>
+            </div>
+
+            <div class="panel-full">
+                <div class="data-panel">
+                    <div class="panel-header">View per Agent</div>
+                    <div class="table-container" style="max-height: 400px;">
+                        <table id="agentTable">
+                            <thead>
+                                <tr>
+                                    <th>HR</th><th>Name</th><th>LOB</th><th>TL</th><th>SPV</th>
+                                    <th class="center">Chats</th><th class="center">AHT</th><th class="center">Talk+Hold</th><th class="center">ACW</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agentTableBody"><tr><td colspan="9" class="center" style="color:var(--text-muted);">Awaiting compilation.</td></tr></tbody>
+                            <tfoot id="agentTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-row">
+                <div class="panel-half data-panel">
+                    <div class="panel-header">View per SV</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="svTable">
+                            <thead>
+                                <tr><th>Supervisor</th><th class="center">Chats</th><th class="center">AHT</th><th class="center">Talk+Hold</th><th class="center">ACW</th></tr>
+                            </thead>
+                            <tbody id="svTableBody"><tr><td colspan="5" class="center" style="color:var(--text-muted);">No logs parsed.</td></tr></tbody>
+                            <tfoot id="svTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-half data-panel">
+                    <div class="panel-header">View per TL</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="tlTable">
+                            <thead>
+                                <tr><th>Team Leader</th><th>SPV</th><th class="center">Chats</th><th class="center">AHT</th><th class="center">Talk+Hold</th><th class="center">ACW</th></tr>
+                            </thead>
+                            <tbody id="tlTableBody"><tr><td colspan="6" class="center" style="color:var(--text-muted);">No logs parsed.</td></tr></tbody>
+                            <tfoot id="tlTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-full">
+                <div class="data-panel">
+                    <div class="panel-header">View per interval</div>
+                    <div class="table-container" style="max-height: 350px;">
+                        <table id="intervalTable">
+                            <thead>
+                                <tr>
+                                    <th class="center">Interval</th><th class="center">Chats</th><th class="center">AHT</th><th class="center">Talk+Hold</th><th class="center">ACW Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="intervalTableBody"><tr><td colspan="5" class="center" style="color:var(--text-muted);">No intervals mapped.</td></tr></tbody>
+                            <tfoot id="intervalTableFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="app-footer">
+        Designed & Developed by | <strong>Yousef Samir</strong> &copy; 2026
+    </div>
+
+    <script>
+        let rawChats = [];
+        let rawStatus = [];
+        let orgMap = {};
+        let activeSiteFilter = 'All';
+        
+        function hideLoader() {
+            const loader = document.getElementById('pageLoader');
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 400);
+        }
+
+        function displayError(msg) {
+            const banner = document.getElementById('errorBanner');
+            document.getElementById('errorText').textContent = msg;
+            banner.style.display = 'block';
+            setTimeout(() => banner.style.display = 'none', 8000);
+        }
+
+        function switchTab(btn, tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function setSiteFilter(site) {
+            document.querySelectorAll('.site-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            activeSiteFilter = site;
+            processAHT();
+            processCPH();
+        }
+
+        function isGHC(site, lob) {
+            let s = String(site).toLowerCase();
+            let l = String(lob).toLowerCase();
+            return s.includes('ghc') || l.includes('ghc');
+        }
+
+        function groupLOB(rawLob) {
+            if (!rawLob || rawLob === 'Unassigned' || rawLob === 'Unassigned LOB') return "Unknown LOB";
+            let l = String(rawLob).toLowerCase().replace(/[\s\-]/g, '');
+            if (l.includes('tmart') || l.includes('fcr') || l.includes('delivery') || l.includes('pickup')) return "Combined";
+            if (l.includes('tpro')) return "TPro";
+            return String(rawLob).trim(); 
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof google !== 'undefined' && google.script) {
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        try {
+                            const parsed = JSON.parse(response);
+                            const actualData = parsed.data ? parsed.data : parsed;
+                            if (Object.keys(actualData).length > 0) {
+                                orgMap = actualData; 
+                                let statusEl = document.getElementById('distroStatus');
+                                statusEl.classList.add('ready');
+                                statusEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Directory Linked</span>';
+                                hideLoader();
+                            } else { displayError("Directory Sync Failed: Directory is empty."); hideLoader(); }
+                        } catch(e) { displayError("Failed to interpret directory."); hideLoader(); }
+                    }).withFailureHandler(function(err) { displayError("Network connection refused."); hideLoader(); }).getDistroData();
+            } else {
+                document.getElementById('distroStatus').innerHTML = '<i class="fa-solid fa-server"></i> <span>Offline Mode</span>'; hideLoader();
+            }
+        });
+
+        function parseCSVArray(strData) {
+            let delimiter = ",";
+            let firstLine = strData.split('\n')[0] || '';
+            if (firstLine.includes(';')) delimiter = ';';
+            else if (firstLine.includes('\t')) delimiter = '\t';
+            var objPattern = new RegExp(("(\\" + delimiter + "|\\r?\\n|\\r|^)" + "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" + "([^\"\\" + delimiter + "\\r\\n]*))"), "gi");
+            var arrData = [[]]; var arrMatches = null;
+            while (arrMatches = objPattern.exec(strData)) {
+                var strMatchedDelimiter = arrMatches[1];
+                if (strMatchedDelimiter.length && strMatchedDelimiter !== delimiter) { arrData.push([]); }
+                var strMatchedValue;
+                if (arrMatches[2]) { strMatchedValue = arrMatches[2].replace(new RegExp("\"\"", "g"), "\""); } else { strMatchedValue = arrMatches[3]; }
+                arrData[arrData.length - 1].push(strMatchedValue);
+            }
+            if (arrData.length > 0 && arrData[arrData.length - 1].length <= 1 && arrData[arrData.length - 1][0] === "") arrData.pop();
+            return arrData;
+        }
+
+        function extractExactIntervalKey(dateStr) {
+            if (!dateStr || String(dateStr).trim() === '-' || String(dateStr).trim() === '') return { sortKey: -1, label: "Unknown" };
+            let d = new Date(String(dateStr).trim().replace(/^"|"$/g, ''));
+            if (isNaN(d.getTime())) return { sortKey: -1, label: "Unknown" };
+            let h = d.getHours();
+            let m = d.getMinutes();
+            let mRounded = m >= 30 ? 30 : 0;
+            let sortKey = h * 60 + mRounded;
+            let mmStr = mRounded === 0 ? "30" : "00";
+            let displayH = mRounded === 0 ? h : (h === 0 ? 0 : h); 
+            return { sortKey: sortKey, label: `${displayH}:${mmStr}` };
+        }
+
+        function extractTimestampSafe(str) {
+            if (!str || String(str).trim() === '-' || String(str).trim() === '') return null;
+            let d = new Date(String(str).trim().replace(/^"|"$/g, ''));
+            return isNaN(d.getTime()) ? null : d.getTime();
+        }
+
+        function makeUltraKey(str) { 
+            return String(str).toLowerCase().replace('@talabat.com', '').replace('.ext', '').replace(/[\s\.]/g, '').trim(); 
+        }
+
+        function safeParseFloat(str) { if (!str) return 0; let num = parseFloat(String(str).replace(/,/g, '').trim()); return isNaN(num) ? 0 : num; }
+
+        document.getElementById('inputChats').addEventListener('change', async (e) => {
+            try {
+                if (!e.target.files.length) return;
+                let fileText = await new Promise(res => { let r = new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsText(e.target.files[0]); });
+                let entries = parseCSVArray(fileText);
+                if (entries.length < 2) { displayError("File is empty."); return; }
+                
+                let headings = entries[0].map(h => h ? String(h).toLowerCase().replace(/^\ufeff/, '').trim() : '');
+                
+                let emailIdx = headings.findIndex(h => h.includes('agent email') || h.includes('email'));
+                let statusIdx = headings.findIndex(h => h.includes('chat status') || h === 'status');
+                let createIdx = headings.findIndex(h => h.includes('creation timestamp'));
+                let firstReplyIdx = headings.findIndex(h => h.includes('first reply timestamp'));
+                let handlingIdx = headings.findIndex(h => h === 'handling time' || h.includes('handling time'));
+                let wrapIdx = headings.findIndex(h => h === 'wrap up time' || h.includes('wrap up'));
+                let driverIdx = headings.findIndex(h => h.includes('ccr category l3') || h.includes('driver'));
+                let tenureIdx = headings.findIndex(h => h === 'tenure id' || h.includes('tenure'));
+
+                if (emailIdx === -1 || handlingIdx === -1 || wrapIdx === -1 || statusIdx === -1) { 
+                    displayError("Validation Error: Missing required columns in Chats file."); return; 
+                }
+
+                rawChats = [];
+                for (let i = 1; i < entries.length; i++) {
+                    let row = entries[i]; 
+                    if (!row || row.length <= emailIdx || !row[emailIdx]) continue;
+
+                    let currentStatus = row[statusIdx] ? String(row[statusIdx]).toUpperCase().trim() : '';
+                    if (currentStatus !== 'CLOSED' && currentStatus !== 'CLOSE') {
+                        continue; 
+                    }
+                    
+                    let talkAndHoldSec = safeParseFloat(row[handlingIdx]);
+                    let acwSec = safeParseFloat(row[wrapIdx]);
+                    let totalAHTSec = talkAndHoldSec + acwSec; 
+                    
+                    let intervalStr = null;
+                    if (firstReplyIdx !== -1 && row[firstReplyIdx] && String(row[firstReplyIdx]).trim() !== '-') {
+                        intervalStr = String(row[firstReplyIdx]).trim();
+                    }
+                    if (!intervalStr) {
+                        intervalStr = createIdx !== -1 && row[createIdx] ? String(row[createIdx]).trim() : null;
+                    }
+
+                    let cTs = createIdx !== -1 ? extractTimestampSafe(row[createIdx]) : null;
+                    let chatTs = extractTimestampSafe(intervalStr) || cTs;
+                    
+                    let uKey = makeUltraKey(row[emailIdx]);
+                    let meta = orgMap[uKey] || { hr: 'N/A', sv: 'Unassigned SPV', tl: 'Unassigned TL', lob: 'Unknown LOB', site: 'Unknown Site' };
+
+                    rawChats.push({
+                        key: uKey,
+                        hr: meta.hr,
+                        name: String(row[emailIdx]).split('@')[0],
+                        email: String(row[emailIdx]).trim(),
+                        sv: meta.sv ? String(meta.sv).trim() : 'Unassigned SPV',
+                        tl: meta.tl ? String(meta.tl).trim() : 'Unassigned TL',
+                        lob: groupLOB(meta.lob),
+                        site: meta.site ? String(meta.site).trim() : 'Unknown Site',
+                        intervalBaseStr: intervalStr, 
+                        chatTs: chatTs,
+                        talk: talkAndHoldSec,
+                        acw: acwSec,
+                        totalHandle: totalAHTSec,
+                        driver: driverIdx !== -1 && row[driverIdx] ? String(row[driverIdx]).trim() : 'Unspecified',
+                        tenure: tenureIdx !== -1 && row[tenureIdx] ? String(row[tenureIdx]).trim() : 'Unspecified'
+                    });
+                }
+                let btn = document.getElementById('btnChats');
+                btn.classList.add('success'); btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Chats Loaded</span>';
+                processAHT(); processCPH();
+            } catch(error) { 
+                console.error(error); displayError("Error parsing Chats: " + error.message); 
+            }
+        });
+
+        document.getElementById('inputStatus').addEventListener('change', async (e) => {
+            try {
+                if (!e.target.files.length) return;
+                let fileText = await new Promise(res => { let r = new FileReader(); r.onload=ev=>res(ev.target.result); r.readAsText(e.target.files[0]); });
+                let entries = parseCSVArray(fileText);
+                if (entries.length < 2) { displayError("Status file is empty."); return; }
+
+                let headings = entries[0].map(h => h ? String(h).toLowerCase().replace(/^\ufeff/, '').trim() : '');
+                
+                let emailIdx = headings.findIndex(h => h === 'agent_email' || h.includes('email'));
+                let statusIdx = headings.findIndex(h => h === 'status');
+                let startIdx = headings.findIndex(h => h === 'date' || h.includes('start'));
+                let endIdx = headings.findIndex(h => h === 'end_timestamp' || h.includes('end'));
+
+                if (emailIdx === -1 || startIdx === -1 || statusIdx === -1) { 
+                    displayError("Validation Error: Missing required columns in Status file."); return; 
+                }
+
+                rawStatus = []; let maxObservedTime = 0; let basePullTime = new Date().getTime();
+                
+                for (let i = 1; i < entries.length; i++) {
+                    let row = entries[i];
+                    if (!row || row.length <= startIdx) continue;
+                    let st = extractTimestampSafe(row[startIdx]);
+                    let et = endIdx !== -1 && row[endIdx] ? extractTimestampSafe(row[endIdx]) : null;
+                    if (st && st > maxObservedTime) maxObservedTime = st;
+                    if (et && et > maxObservedTime) maxObservedTime = et;
+                }
+                if (maxObservedTime > 0) basePullTime = maxObservedTime; 
+
+                for (let i = 1; i < entries.length; i++) {
+                    let row = entries[i]; 
+                    if (!row || row.length <= emailIdx) continue;
+
+                    let currentStatus = row[statusIdx] ? String(row[statusIdx]).toUpperCase() : '';
+                    let st = startIdx !== -1 && row[startIdx] ? extractTimestampSafe(row[startIdx]) : null; 
+                    let enStr = endIdx !== -1 ? row[endIdx] : null;
+                    
+                    if (row[emailIdx] && st && (currentStatus.includes('ONLINE') || currentStatus.includes('BUSY') || currentStatus.includes('AVAILABLE') || currentStatus.includes('READY'))) {
+                        let en = (enStr && String(enStr).trim() !== '') ? extractTimestampSafe(enStr) : basePullTime;
+                        if (en && en > st) rawStatus.push({ key: makeUltraKey(row[emailIdx]), start: st, end: en });
+                    }
+                }
+                let btn = document.getElementById('btnStatus');
+                btn.classList.add('success'); btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Status Loaded</span>';
+                processCPH();
+            } catch(error) { 
+                console.error(error); displayError("Error parsing Status file: " + error.message); 
+            }
+        });
+
+        function processAHT() {
+            if (rawChats.length === 0) return;
+            
+            let startVal = document.getElementById('filterStart').value;
+            let endVal = document.getElementById('filterEnd').value;
+            let boundsStart = startVal ? new Date(startVal).getTime() : null;
+            let boundsEnd = endVal ? new Date(endVal).getTime() : null;
+
+            let agentMap = {}, svMap = {}, tlMap = {}, intMap = {};
+            let sumChats = 0, sumTotalHandle = 0, sumTalk = 0, sumAcw = 0;
+
+            rawChats.forEach(c => {
+                if (boundsStart && c.chatTs && c.chatTs < boundsStart) return;
+                if (boundsEnd && c.chatTs && c.chatTs > boundsEnd) return;
+
+                if (isGHC(c.site, c.lob)) return; 
+
+                let sVal = String(c.site).toLowerCase();
+                if (activeSiteFilter !== 'All') {
+                    if (activeSiteFilter === 'Alex' && !sVal.includes('alex')) return;
+                    if (activeSiteFilter === 'Assiut' && !sVal.includes('assuit') && !sVal.includes('assiut')) return;
+                }
+
+                let currentInterval = extractExactIntervalKey(c.intervalBaseStr);
+                
+                if (!agentMap[c.key]) agentMap[c.key] = { hr: c.hr, email: c.email, name: c.name, sv: c.sv, tl: c.tl, lob: c.lob, site: c.site, chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                agentMap[c.key].chats++; agentMap[c.key].totalHandle += c.totalHandle; agentMap[c.key].talk += c.talk; agentMap[c.key].acw += c.acw;
+
+                if (!svMap[c.sv]) svMap[c.sv] = { name: c.sv, chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                svMap[c.sv].chats++; svMap[c.sv].totalHandle += c.totalHandle; svMap[c.sv].talk += c.talk; svMap[c.sv].acw += c.acw;
+
+                let tlKey = c.sv + " | " + c.tl;
+                if (!tlMap[tlKey]) tlMap[tlKey] = { sv: c.sv, name: c.tl, chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                tlMap[tlKey].chats++; tlMap[tlKey].totalHandle += c.totalHandle; tlMap[tlKey].talk += c.talk; tlMap[tlKey].acw += c.acw;
+
+                if (!intMap[currentInterval.sortKey]) intMap[currentInterval.sortKey] = { label: currentInterval.label, chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                intMap[currentInterval.sortKey].chats++; intMap[currentInterval.sortKey].totalHandle += c.totalHandle; intMap[currentInterval.sortKey].talk += c.talk; intMap[currentInterval.sortKey].acw += c.acw;
+                
+                sumChats++; sumTotalHandle += c.totalHandle; sumTalk += c.talk; sumAcw += c.acw;
+            });
+
+            let agents = Object.keys(agentMap).map(k => { let a = agentMap[k]; return { ...a, aht: a.chats > 0 ? (a.totalHandle / a.chats) : 0, avgT: a.chats > 0 ? (a.talk / a.chats) : 0, avgC: a.chats > 0 ? (a.acw / a.chats) : 0 }; }).sort((a, b) => b.chats - a.chats);
+            let htmlBuffer = '';
+            agents.forEach(a => { htmlBuffer += `<tr><td>${a.hr}</td><td style="font-weight:500;">${a.name}</td><td>${a.lob}</td><td>${a.tl}</td><td>${a.sv}</td><td class="center" style="font-weight:600;">${a.chats}</td><td class="center" style="font-weight:600;">${a.aht.toFixed(2)}</td><td class="center">${a.avgT.toFixed(2)}</td><td class="center">${a.avgC.toFixed(2)}</td></tr>`; });
+            if(document.getElementById('agentTableBody')) document.getElementById('agentTableBody').innerHTML = htmlBuffer || '<tr><td colspan="9" class="center">No data matching constraints.</td></tr>';
+
+            let oAht = sumChats > 0 ? (sumTotalHandle)/sumChats : 0;
+            let oTalkAvg = sumChats > 0 ? sumTalk/sumChats : 0;
+            let oAcwAvg = sumChats > 0 ? sumAcw/sumChats : 0;
+
+            let footAgent = `<tr><td colspan="5">Overall</td><td class="center">${sumChats}</td><td class="center">${oAht.toFixed(2)}</td><td class="center">${oTalkAvg.toFixed(2)}</td><td class="center">${oAcwAvg.toFixed(2)}</td></tr>`;
+            if(document.getElementById('agentTableFoot')) document.getElementById('agentTableFoot').innerHTML = sumChats > 0 ? footAgent : '';
+
+            let svs = Object.keys(svMap).map(k => { let s = svMap[k]; return { ...s, aht: s.chats > 0 ? (s.totalHandle / s.chats) : 0, avgT: s.chats > 0 ? (s.talk / s.chats) : 0, avgC: s.chats > 0 ? (s.acw / s.chats) : 0 }; }).sort((a, b) => b.chats - a.chats);
+            let svBuffer = '';
+            svs.forEach(s => { svBuffer += `<tr><td style="font-weight:500;">${s.name}</td><td class="center" style="font-weight:600;">${s.chats}</td><td class="center" style="font-weight:600;">${s.aht.toFixed(2)}</td><td class="center">${s.avgT.toFixed(2)}</td><td class="center">${s.avgC.toFixed(2)}</td></tr>`; });
+            if(document.getElementById('svTableBody')) document.getElementById('svTableBody').innerHTML = svBuffer || '<tr><td colspan="5" class="center">No data matching constraints.</td></tr>';
+            let footSV = `<tr><td>Overall</td><td class="center">${sumChats}</td><td class="center">${oAht.toFixed(2)}</td><td class="center">${oTalkAvg.toFixed(2)}</td><td class="center">${oAcwAvg.toFixed(2)}</td></tr>`;
+            if(document.getElementById('svTableFoot')) document.getElementById('svTableFoot').innerHTML = sumChats > 0 ? footSV : '';
+
+            let tls = Object.keys(tlMap).map(k => { let t = tlMap[k]; return { ...t, aht: t.chats > 0 ? (t.totalHandle / t.chats) : 0, avgT: t.chats > 0 ? (t.talk / t.chats) : 0, avgC: t.chats > 0 ? (t.acw / t.chats) : 0 }; }).sort((a, b) => b.chats - a.chats);
+            let tlBuffer = '';
+            tls.forEach(t => { tlBuffer += `<tr><td style="font-weight:500;">${t.name}</td><td>${t.sv}</td><td class="center" style="font-weight:600;">${t.chats}</td><td class="center" style="font-weight:600;">${t.aht.toFixed(2)}</td><td class="center">${t.avgT.toFixed(2)}</td><td class="center">${t.avgC.toFixed(2)}</td></tr>`; });
+            if(document.getElementById('tlTableBody')) document.getElementById('tlTableBody').innerHTML = tlBuffer || '<tr><td colspan="6" class="center">No data matching constraints.</td></tr>';
+            let footTL = `<tr><td colspan="2">Overall</td><td class="center">${sumChats}</td><td class="center">${oAht.toFixed(2)}</td><td class="center">${oTalkAvg.toFixed(2)}</td><td class="center">${oAcwAvg.toFixed(2)}</td></tr>`;
+            if(document.getElementById('tlTableFoot')) document.getElementById('tlTableFoot').innerHTML = sumChats > 0 ? footTL : '';
+
+            let intervals = Object.keys(intMap).map(k => { let v = intMap[k]; return { sortKey: parseInt(k), label: v.label, chats: v.chats, aht: v.chats > 0 ? (v.totalHandle / v.chats) : 0, avgT: v.chats > 0 ? (v.talk / v.chats) : 0, avgC: v.chats > 0 ? (v.acw / v.chats) : 0 }; }).sort((a, b) => a.sortKey - b.sortKey);
+            let intervalBuffer = '';
+            intervals.forEach(v => {
+                let lblStyle = v.sortKey === -1 ? 'color:#b91c1c;' : 'color:var(--text-main);';
+                intervalBuffer += `<tr><td style="font-weight:600; ${lblStyle}" class="center">${v.label}</td><td class="center" style="font-weight:600;">${v.chats}</td><td class="center" style="font-weight:600;">${v.aht.toFixed(2)}</td><td class="center">${v.avgT.toFixed(2)}</td><td class="center">${v.avgC.toFixed(2)}</td></tr>`;
+            });
+            if(document.getElementById('intervalTableBody')) document.getElementById('intervalTableBody').innerHTML = intervalBuffer || '<tr><td colspan="5" class="center">No intervals mapped.</td></tr>';
+            let footInt = `<tr><td class="center">Overall</td><td class="center">${sumChats}</td><td class="center">${oAht.toFixed(2)}</td><td class="center">${oTalkAvg.toFixed(2)}</td><td class="center">${oAcwAvg.toFixed(2)}</td></tr>`;
+            if(document.getElementById('intervalTableFoot')) document.getElementById('intervalTableFoot').innerHTML = sumChats > 0 ? footInt : '';
+
+            if(document.getElementById('kpiAhtChats')) document.getElementById('kpiAhtChats').textContent = sumChats;
+            if(document.getElementById('kpiAhtTotal')) document.getElementById('kpiAhtTotal').textContent = oAht.toFixed(2) + 's';
+        }
+
+        // CPH Aggregator with optional LOB Filter
+        function aggregateCPHData(siteFilter, lobFilter = 'All') {
+            let startVal = document.getElementById('filterStart').value;
+            let endVal = document.getElementById('filterEnd').value;
+            let boundsStart = startVal ? new Date(startVal).getTime() : null;
+            let boundsEnd = endVal ? new Date(endVal).getTime() : null;
+
+            let aMap = {}, sMap = {}, tMap = {}, lMap = {}, iMap = {};
+            let tChats = 0, tHours = 0, tTotalHandle = 0;
+
+            rawChats.forEach(c => {
+                if (boundsStart && c.chatTs && c.chatTs < boundsStart) return;
+                if (boundsEnd && c.chatTs && c.chatTs > boundsEnd) return;
+                
+                if (isGHC(c.site, c.lob)) return; 
+
+                let sVal = String(c.site).toLowerCase();
+                if (siteFilter !== 'All') {
+                    if (siteFilter === 'Alex' && !sVal.includes('alex')) return;
+                    if (siteFilter === 'Assiut' && !sVal.includes('assuit') && !sVal.includes('assiut')) return;
+                }
+
+                let finalLob = groupLOB(c.lob);
+                if (lobFilter !== 'All' && finalLob !== lobFilter) return;
+
+                if (!aMap[c.key]) aMap[c.key] = { key: c.key, hr: c.hr, email: c.email, name: c.name, site: c.site, lob: finalLob, sv: c.sv, tl: c.tl, chats: 0, hours: 0, totalHandle: 0 };
+                aMap[c.key].chats++; aMap[c.key].totalHandle += c.totalHandle;
+                
+                if (!sMap[c.sv]) sMap[c.sv] = { name: c.sv, chats: 0, hours: 0, totalHandle: 0 };
+                sMap[c.sv].chats++; sMap[c.sv].totalHandle += c.totalHandle;
+                
+                let tlKey = c.sv + " | " + c.tl;
+                if (!tMap[tlKey]) tMap[tlKey] = { name: c.tl, sv: c.sv, chats: 0, hours: 0, totalHandle: 0 };
+                tMap[tlKey].chats++; tMap[tlKey].totalHandle += c.totalHandle;
+
+                if (!lMap[finalLob]) lMap[finalLob] = { name: finalLob, chats: 0, hours: 0, totalHandle: 0 };
+                lMap[finalLob].chats++; lMap[finalLob].totalHandle += c.totalHandle;
+
+                let currentInterval = extractExactIntervalKey(c.intervalBaseStr);
+                if (!iMap[currentInterval.sortKey]) iMap[currentInterval.sortKey] = { label: currentInterval.label, chats: 0, hours: 0, totalHandle: 0 };
+                iMap[currentInterval.sortKey].chats++; iMap[currentInterval.sortKey].totalHandle += c.totalHandle;
+
+                tChats++; tTotalHandle += c.totalHandle;
+            });
+
+            let agentAux = {}; 
+            rawStatus.forEach(inv => {
+                let s = inv.start, e = inv.end;
+                if (boundsStart && s < boundsStart) s = boundsStart;
+                if (boundsEnd && e > boundsEnd) e = boundsEnd;
+                
+                if (s < e) {
+                    let meta = orgMap[inv.key] || { lob: 'Unknown LOB', site: 'Unknown Site' };
+                    if (isGHC(meta.site, meta.lob)) return; 
+
+                    let sVal = String(meta.site).toLowerCase();
+                    if (siteFilter !== 'All') {
+                        if (siteFilter === 'Alex' && !sVal.includes('alex')) return;
+                        if (siteFilter === 'Assiut' && !sVal.includes('assuit') && !sVal.includes('assiut')) return;
+                    }
+                    
+                    let finalLob = groupLOB(meta.lob);
+                    if (lobFilter !== 'All' && finalLob !== lobFilter) return;
+
+                    if (!agentAux[inv.key]) agentAux[inv.key] = [];
+                    agentAux[inv.key].push({ start: s, end: e });
+                }
+            });
+
+            Object.keys(agentAux).forEach(key => {
+                let blocks = agentAux[key];
+                blocks.sort((x, y) => x.start - y.start);
+                let merged = [ { ...blocks[0] } ];
+                for (let i = 1; i < blocks.length; i++) {
+                    let curr = blocks[i]; let last = merged[merged.length - 1];
+                    if (curr.start <= last.end) { if (curr.end > last.end) last.end = curr.end; } 
+                    else { merged.push({ ...curr }); }
+                }
+                
+                let totalNetHours = 0;
+                merged.forEach(b => { totalNetHours += (b.end - b.start) / 3600000; });
+                
+                if (aMap[key]) {
+                    aMap[key].hours += totalNetHours;
+                    if (sMap[aMap[key].sv]) sMap[aMap[key].sv].hours += totalNetHours;
+                    let tKey = aMap[key].sv + " | " + aMap[key].tl;
+                    if (tMap[tKey]) tMap[tKey].hours += totalNetHours;
+                    if (lMap[aMap[key].lob]) lMap[aMap[key].lob].hours += totalNetHours;
+                    tHours += totalNetHours;
+                } else {
+                    let meta = orgMap[key] || { hr: 'N/A', sv: 'Unassigned SPV', tl: 'Unassigned TL', lob: 'Unknown LOB', site: 'Unknown Site' };
+                    let finalLob = groupLOB(meta.lob);
+                    aMap[key] = { key: key, hr: meta.hr, email: key, name: key.split('@')[0], site: meta.site, lob: finalLob, sv: meta.sv, tl: meta.tl, chats: 0, hours: totalNetHours, totalHandle: 0 };
+                    
+                    if (!sMap[meta.sv]) sMap[meta.sv] = { name: meta.sv, chats: 0, hours: 0, totalHandle: 0 };
+                    sMap[meta.sv].hours += totalNetHours;
+                    
+                    let tKey = meta.sv + " | " + meta.tl;
+                    if (!tMap[tKey]) tMap[tKey] = { name: meta.tl, sv: meta.sv, chats: 0, hours: 0, totalHandle: 0 };
+                    tMap[tKey].hours += totalNetHours;
+
+                    if (!lMap[finalLob]) lMap[finalLob] = { name: finalLob, chats: 0, hours: 0, totalHandle: 0 };
+                    lMap[finalLob].hours += totalNetHours;
+
+                    tHours += totalNetHours;
+                }
+
+                merged.forEach(b => {
+                    let current = b.start;
+                    while(current < b.end) {
+                        let d = new Date(current);
+                        let h = d.getHours(); let min = d.getMinutes();
+                        let mRounded = min >= 30 ? 30 : 0;
+                        let nextBoundary = new Date(d);
+                        if (mRounded === 0) { nextBoundary.setMinutes(30, 0, 0); } else { nextBoundary.setHours(h + 1, 0, 0, 0); }
+                        let chunkEnd = Math.min(b.end, nextBoundary.getTime());
+                        let chunkHrs = (chunkEnd - current) / 3600000;
+                        let sortKey = (h * 60) + mRounded;
+                        let mmStr = mRounded === 0 ? "00" : "30";
+                        let displayH = h;
+                        let label = `${displayH}:${mmStr}`;
+                        
+                        if(!iMap[sortKey]) iMap[sortKey] = { label: label, chats: 0, hours: 0, totalHandle: 0 };
+                        iMap[sortKey].hours += chunkHrs;
+                        current = chunkEnd;
+                    }
+                });
+            });
+
+            let mapToArr = (obj) => Object.values(obj).map(v => {
+                v.cph = v.hours >= 0.016 ? v.chats / v.hours : -1;
+                v.aht = v.chats > 0 ? (v.totalHandle / v.chats) : 0; 
+                return v;
+            });
+
+            let agents = mapToArr(aMap).filter(a => a.chats > 0 || a.hours > 0).sort((a,b) => b.cph - a.cph);
+            let svs = mapToArr(sMap).sort((a,b) => b.cph - a.cph);
+            let tls = mapToArr(tMap).sort((a,b) => b.cph - a.cph);
+            let lobs = mapToArr(lMap).sort((a,b) => b.cph - a.cph);
+            
+            let intervals = Object.keys(iMap).map(k => {
+                let v = iMap[k]; v.sortKey = parseInt(k);
+                v.cph = v.hours >= 0.016 ? v.chats / v.hours : -1;
+                v.aht = v.chats > 0 ? (v.totalHandle / v.chats) : 0;
+                return v;
+            }).sort((a,b) => a.sortKey - b.sortKey);
+
+            return { agents, svs, tls, lobs, intervals, totals: { chats: tChats, hours: tHours, totalHandle: tTotalHandle } };
+        }
+
+        function processCPH() {
+            if (rawChats.length === 0 || rawStatus.length === 0) return;
+            
+            // 1. Process Master View
+            let data = aggregateCPHData(activeSiteFilter, 'All');
+            let totalsChats = data.totals.chats;
+            let totalsHours = data.totals.hours;
+            let totalsCph = totalsHours >= 0.016 ? totalsChats / totalsHours : -1;
+            let totalsAht = totalsChats > 0 ? (data.totals.totalHandle / totalsChats) : 0;
+
+            let bufferHtml = '';
+            data.agents.forEach(a => {
+                bufferHtml += `<tr><td>${a.hr}</td><td style="font-weight:500;">${a.name}</td><td>${a.site}</td><td>${a.lob}</td><td>${a.tl}</td><td>${a.sv}</td><td class="center" style="font-weight:600;">${a.chats}</td><td class="center" style="font-weight:600;">${a.aht.toFixed(2)}</td><td class="center">${a.hours.toFixed(2)}</td><td class="center" style="font-weight:700;">${a.cph === -1 ? 'N/A' : a.cph.toFixed(2)}</td></tr>`;
+            });
+            document.getElementById('cphTableBody').innerHTML = bufferHtml || '<tr><td colspan="10" class="center">No data matching constraints.</td></tr>';
+            let footAgent = `<tr><td colspan="6">Overall</td><td class="center">${totalsChats}</td><td class="center">${totalsAht.toFixed(2)}</td><td class="center">${totalsHours.toFixed(2)}</td><td class="center">${totalsCph === -1 ? 'N/A' : totalsCph.toFixed(2)}</td></tr>`;
+            document.getElementById('cphTableFoot').innerHTML = totalsChats > 0 ? footAgent : '';
+
+            // 2. Process Combined LOB View (Overall Intervals)
+            let dataCombined = aggregateCPHData(activeSiteFilter, 'Combined');
+            let intBufComb = '';
+            dataCombined.intervals.forEach(v => {
+                let lblStyle = v.sortKey === -1 ? 'color:#b91c1c;' : 'color:var(--text-main);';
+                intBufComb += `<tr><td style="font-weight:600; ${lblStyle}" class="center">${v.label}</td><td class="center" style="font-weight:600;">${v.chats}</td><td class="center" style="font-weight:600;">${v.aht.toFixed(2)}</td><td class="center">${v.hours.toFixed(2)}</td><td class="center" style="font-weight:700;">${v.cph === -1 ? 'N/A' : v.cph.toFixed(2)}</td></tr>`;
+            });
+            document.getElementById('cphCombinedTableBody').innerHTML = intBufComb || '<tr><td colspan="5" class="center">No data matching constraints.</td></tr>';
+            let cTotComb = dataCombined.totals.chats; let hTotComb = dataCombined.totals.hours; 
+            let ahtTotComb = cTotComb > 0 ? (dataCombined.totals.totalHandle / cTotComb) : 0;
+            let cphTotComb = hTotComb >= 0.016 ? cTotComb/hTotComb : -1;
+            document.getElementById('cphCombinedTableFoot').innerHTML = cTotComb > 0 ? `<tr><td class="center">Overall</td><td class="center">${cTotComb}</td><td class="center">${ahtTotComb.toFixed(2)}</td><td class="center">${hTotComb.toFixed(2)}</td><td class="center">${cphTotComb === -1 ? 'N/A' : cphTotComb.toFixed(2)}</td></tr>` : '';
+
+            // 3. Process T-Pro LOB View (Overall Intervals)
+            let dataTPro = aggregateCPHData(activeSiteFilter, 'TPro');
+            let intBufTPro = '';
+            dataTPro.intervals.forEach(v => {
+                let lblStyle = v.sortKey === -1 ? 'color:#b91c1c;' : 'color:var(--text-main);';
+                intBufTPro += `<tr><td style="font-weight:600; ${lblStyle}" class="center">${v.label}</td><td class="center" style="font-weight:600;">${v.chats}</td><td class="center" style="font-weight:600;">${v.aht.toFixed(2)}</td><td class="center">${v.hours.toFixed(2)}</td><td class="center" style="font-weight:700;">${v.cph === -1 ? 'N/A' : v.cph.toFixed(2)}</td></tr>`;
+            });
+            document.getElementById('cphTProTableBody').innerHTML = intBufTPro || '<tr><td colspan="5" class="center">No data matching constraints.</td></tr>';
+            let cTotTpro = dataTPro.totals.chats; let hTotTpro = dataTPro.totals.hours; 
+            let ahtTotTpro = cTotTpro > 0 ? (dataTPro.totals.totalHandle / cTotTpro) : 0;
+            let cphTotTpro = hTotTpro >= 0.016 ? cTotTpro/hTotTpro : -1;
+            document.getElementById('cphTProTableFoot').innerHTML = cTotTpro > 0 ? `<tr><td class="center">Overall</td><td class="center">${cTotTpro}</td><td class="center">${ahtTotTpro.toFixed(2)}</td><td class="center">${hTotTpro.toFixed(2)}</td><td class="center">${cphTotTpro === -1 ? 'N/A' : cphTotTpro.toFixed(2)}</td></tr>` : '';
+
+            // 4. Process SV, TL, Intervals
+            let svBuffer = '';
+            data.svs.forEach(s => {
+                svBuffer += `<tr><td style="font-weight:500;">${s.name}</td><td class="center" style="font-weight:600;">${s.chats}</td><td class="center" style="font-weight:600;">${s.aht.toFixed(2)}</td><td class="center">${s.hours.toFixed(2)}</td><td class="center" style="font-weight:600;">${s.cph === -1 ? 'N/A' : s.cph.toFixed(2)}</td></tr>`;
+            });
+            document.getElementById('cphSvTableBody').innerHTML = svBuffer || '<tr><td colspan="5" class="center">No data matching constraints.</td></tr>';
+            let footSV = `<tr><td>Overall</td><td class="center">${totalsChats}</td><td class="center">${totalsAht.toFixed(2)}</td><td class="center">${totalsHours.toFixed(2)}</td><td class="center">${totalsCph === -1 ? 'N/A' : totalsCph.toFixed(2)}</td></tr>`;
+            document.getElementById('cphSvTableFoot').innerHTML = totalsChats > 0 ? footSV : '';
+
+            let tlBuffer = '';
+            data.tls.forEach(t => {
+                tlBuffer += `<tr><td style="font-weight:500;">${t.name}</td><td>${t.sv}</td><td class="center" style="font-weight:600;">${t.chats}</td><td class="center" style="font-weight:600;">${t.aht.toFixed(2)}</td><td class="center">${t.hours.toFixed(2)}</td><td class="center" style="font-weight:600;">${t.cph === -1 ? 'N/A' : t.cph.toFixed(2)}</td></tr>`;
+            });
+            document.getElementById('cphTlTableBody').innerHTML = tlBuffer || '<tr><td colspan="6" class="center">No data matching constraints.</td></tr>';
+            let footTL = `<tr><td colspan="2">Overall</td><td class="center">${totalsChats}</td><td class="center">${totalsAht.toFixed(2)}</td><td class="center">${totalsHours.toFixed(2)}</td><td class="center">${totalsCph === -1 ? 'N/A' : totalsCph.toFixed(2)}</td></tr>`;
+            document.getElementById('cphTlTableFoot').innerHTML = totalsChats > 0 ? footTL : '';
+
+            let intBuffer = '';
+            data.intervals.forEach(v => {
+                let lblStyle = v.sortKey === -1 ? 'color:#b91c1c;' : 'color:var(--text-main);';
+                intBuffer += `<tr><td style="font-weight:600; ${lblStyle}" class="center">${v.label}</td><td class="center" style="font-weight:600;">${v.chats}</td><td class="center" style="font-weight:600;">${v.aht.toFixed(2)}</td><td class="center">${v.hours.toFixed(2)}</td><td class="center" style="font-weight:600;">${v.cph === -1 ? 'N/A' : v.cph.toFixed(2)}</td></tr>`;
+            });
+            document.getElementById('cphIntervalTableBody').innerHTML = intBuffer || '<tr><td colspan="5" class="center">No mapping streams found.</td></tr>';
+            let footInt = `<tr><td class="center">Overall</td><td class="center">${totalsChats}</td><td class="center">${totalsAht.toFixed(2)}</td><td class="center">${totalsHours.toFixed(2)}</td><td class="center">${totalsCph === -1 ? 'N/A' : totalsCph.toFixed(2)}</td></tr>`;
+            document.getElementById('cphIntervalTableFoot').innerHTML = totalsChats > 0 ? footInt : '';
+            
+            if(document.getElementById('kpiFilteredChats')) document.getElementById('kpiFilteredChats').textContent = data.totals.chats;
+            if(document.getElementById('kpiActiveAgents')) document.getElementById('kpiActiveAgents').textContent = data.agents.length;
+            if(document.getElementById('kpiTotalHours')) document.getElementById('kpiTotalHours').textContent = data.totals.hours.toFixed(2);
+        }
+
+        function exportAHTReport(btnElement) {
+            if (rawChats.length === 0) { displayError("No data to export."); return; }
+            let originalText = btnElement.innerHTML;
+            btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exporting...';
+            btnElement.disabled = true;
+
+            let startVal = document.getElementById('filterStart').value;
+            let endVal = document.getElementById('filterEnd').value;
+            let boundsStart = startVal ? new Date(startVal).getTime() : null;
+            let boundsEnd = endVal ? new Date(endVal).getTime() : null;
+
+            let exportDataForFilter = (siteFilter) => {
+                let aMap = {}, sMap = {}, tMap = {}, drvMap = {}, tenMap = {};
+                let tChats = 0, tTotalHandle = 0, tTalk = 0, tAcw = 0;
+                rawChats.forEach(c => {
+                    if (boundsStart && c.chatTs && c.chatTs < boundsStart) return;
+                    if (boundsEnd && c.chatTs && c.chatTs > boundsEnd) return;
+                    if (isGHC(c.site, c.lob)) return; 
+
+                    let sVal = String(c.site).toLowerCase();
+                    if (siteFilter !== 'All') {
+                        if (siteFilter === 'Alex' && !sVal.includes('alex')) return;
+                        if (siteFilter === 'Assiut' && !sVal.includes('assuit') && !sVal.includes('assiut')) return;
+                    }
+                    if (!aMap[c.key]) aMap[c.key] = { hr: c.hr, email: c.email, name: c.name, sv: c.sv, tl: c.tl, site: c.site, lob: c.lob, chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                    aMap[c.key].chats++; aMap[c.key].totalHandle += c.totalHandle; aMap[c.key].talk += c.talk; aMap[c.key].acw += c.acw;
+
+                    if (!sMap[c.sv]) sMap[c.sv] = { chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                    sMap[c.sv].chats++; sMap[c.sv].totalHandle += c.totalHandle; sMap[c.sv].talk += c.talk; sMap[c.sv].acw += c.acw;
+
+                    let tlKey = c.sv + " | " + c.tl;
+                    if (!tMap[tlKey]) tMap[tlKey] = { sv: c.sv, name: c.tl, chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                    tMap[tlKey].chats++; tMap[tlKey].totalHandle += c.totalHandle; tMap[tlKey].talk += c.talk; tMap[tlKey].acw += c.acw;
+
+                    let dStr = c.driver || "Unspecified";
+                    if (!drvMap[dStr]) drvMap[dStr] = { chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                    drvMap[dStr].chats++; drvMap[dStr].totalHandle += c.totalHandle; drvMap[dStr].talk += c.talk; drvMap[dStr].acw += c.acw;
+
+                    let tStr = c.tenure || "Unspecified";
+                    if (!tenMap[tStr]) tenMap[tStr] = { chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                    tenMap[tStr].chats++; tenMap[tStr].totalHandle += c.totalHandle; tenMap[tStr].talk += c.talk; tenMap[tStr].acw += c.acw;
+
+                    tChats++; tTotalHandle += c.totalHandle; tTalk += c.talk; tAcw += c.acw;
+                });
+                let formatObj = (obj) => Object.keys(obj).map(k => { let v = obj[k]; return { name: v.name || k, ...v, aht: v.chats > 0 ? (v.totalHandle / v.chats) : 0, avgT: v.chats > 0 ? (v.talk / v.chats) : 0, avgC: v.chats > 0 ? (v.acw / v.chats) : 0 }; }).sort((a, b) => b.chats - a.chats);
+                return { agents: formatObj(aMap), svs: formatObj(sMap), tls: formatObj(tMap), drvs: formatObj(drvMap), tens: formatObj(tenMap), totals: { chats: tChats, totalHandle: tTotalHandle, talk: tTalk, acw: tAcw } };
+            };
+
+            let intervalMap = {};
+            let sumChats = 0, sumTotalHandle = 0, sumTalk = 0, sumAcw = 0;
+            rawChats.forEach(c => {
+                if (boundsStart && c.chatTs && c.chatTs < boundsStart) return;
+                if (boundsEnd && c.chatTs && c.chatTs > boundsEnd) return;
+                if (isGHC(c.site, c.lob)) return; 
+
+                let currentInterval = extractExactIntervalKey(c.intervalBaseStr);
+                if (!intervalMap[currentInterval.sortKey]) intervalMap[currentInterval.sortKey] = { label: currentInterval.label, chats: 0, totalHandle: 0, talk: 0, acw: 0 };
+                intervalMap[currentInterval.sortKey].chats++; intervalMap[currentInterval.sortKey].totalHandle += c.totalHandle; intervalMap[currentInterval.sortKey].talk += c.talk; intervalMap[currentInterval.sortKey].acw += c.acw;
+                sumChats++; sumTotalHandle += c.totalHandle; sumTalk += c.talk; sumAcw += c.acw;
+            });
+            let exportIntervalsData = Object.keys(intervalMap).map(k => {
+                let v = intervalMap[k]; return { sortKey: parseInt(k), label: v.label, chats: v.chats, aht: v.chats > 0 ? (v.totalHandle / v.chats) : 0, avgT: v.chats > 0 ? (v.talk / v.chats) : 0, avgC: v.chats > 0 ? (v.acw / v.chats) : 0 };
+            }).sort((a, b) => a.sortKey - b.sortKey);
+
+            var exportPayload = {
+                'Combined (All)': exportDataForFilter('All'),
+                'Alex': exportDataForFilter('Alex'),
+                'Assiut': exportDataForFilter('Assiut'),
+                'intervals': { data: exportIntervalsData, totals: { chats: sumChats, totalHandle: sumTotalHandle, talk: sumTalk, acw: sumAcw } }
+            };
+
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    btnElement.innerHTML = originalText; btnElement.disabled = false;
+                    if (res.success && res.downloadUrl) {
+                        var link = document.createElement('a'); link.href = res.downloadUrl; link.target = '_blank';
+                        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                    } else displayError("Cloud Build Error: " + res.error);
+                })
+                .withFailureHandler(function(err) {
+                    btnElement.innerHTML = originalText; btnElement.disabled = false;
+                    displayError("Network connection error during file generation.");
+                }).generateExcelOnServer(JSON.stringify(exportPayload));
+        }
+
+        function exportCPHReport(btnElement) {
+            if (rawChats.length === 0 || rawStatus.length === 0) { displayError("No data to export."); return; }
+            let originalText = btnElement.innerHTML;
+            btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exporting...';
+            btnElement.disabled = true;
+
+            let cphAll = aggregateCPHData('All', 'All');
+            var exportPayload = {
+                'CPH': cphAll,
+                'Alex': aggregateCPHData('Alex', 'All'),
+                'Assiut': aggregateCPHData('Assiut', 'All'),
+                'Combined': aggregateCPHData('All', 'Combined'),
+                'TPro': aggregateCPHData('All', 'TPro'),
+                'intervals': { data: cphAll.intervals, totals: { chats: cphAll.totals.chats, hours: cphAll.totals.hours, totalHandle: cphAll.totals.totalHandle } }
+            };
+
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    btnElement.innerHTML = originalText; btnElement.disabled = false;
+                    if (res.success && res.downloadUrl) {
+                        var link = document.createElement('a'); link.href = res.downloadUrl; link.target = '_blank';
+                        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                    } else displayError("Cloud Build Error: " + res.error);
+                })
+                .withFailureHandler(function(err) {
+                    btnElement.innerHTML = originalText; btnElement.disabled = false;
+                    displayError("Network connection error during file generation.");
+                }).generateCPHExcelOnServer(JSON.stringify(exportPayload));
+        }
+    </script>
+</body>
+</html>

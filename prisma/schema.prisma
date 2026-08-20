@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Agent {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rawLogs          RawStatusLog[]
+  mergedIntervals  MergedOnlineInterval[]
+  attAssignments   AttAssignment[]
+  reskillOverrides ReskillOverride[]
+}
+
+model RawStatusLog {
+  id             String   @id @default(uuid())
+  agentId        String
+  status         String
+  startTimestamp DateTime
+  endTimestamp   DateTime
+  sourceFile     String?
+  createdAt      DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([startTimestamp])
+}
+
+model MergedOnlineInterval {
+  id             String   @id @default(uuid())
+  agentId        String
+  startTimestamp DateTime
+  endTimestamp   DateTime
+  businessDate   String   // e.g. "2026-08-10"
+  durationMins   Float
+  createdAt      DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([businessDate])
+}
+
+model AttAssignment {
+  id           String   @id @default(uuid())
+  agentId      String
+  businessDate String   // e.g. "2026-08-10"
+  lob          String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, businessDate])
+  @@index([businessDate])
+  @@index([lob])
+}
+
+model ReskillOverride {
+  id             String   @id @default(uuid())
+  agentId        String
+  businessDate   String   // e.g. "2026-08-10"
+  lob            String
+  startTimestamp DateTime
+  endTimestamp   DateTime
+  createdAt      DateTime @default(now())
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([businessDate])
+}
+
+model ReqHour {
+  id               String   @id @default(uuid())
+  lob              String
+  businessDate     String   // e.g. "2026-08-10"
+  intervalMinutes  Int      // e.g. 0, 30, 60... 1410
+  requiredAgents   Float
+  requiredHours    Float
+  sourceTab        String?
+  versionTimestamp DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([lob, businessDate, intervalMinutes])
+  @@index([businessDate])
+  @@index([lob])
+}
+
+model DailyAggregate {
+  id           String   @id @default(uuid())
+  lob          String
+  businessDate String   // e.g. "2026-08-10"
+  hc           Float    // Total SCH
+  abs          Float    // ABS Hours
+  prodSch      Float    // Prod SCH (HC * 0.89)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([lob, businessDate])
+  @@index([businessDate])
+}
+
+model IntervalCalculation {
+  id              String   @id @default(uuid())
+  lob             String
+  businessDate    String   // e.g. "2026-08-10"
+  intervalMinutes Int      // e.g. 0, 30...
+  reqHours        Float    @default(0)
+  actualHours     Float    @default(0)
+  billableHours   Float    @default(0)
+  shortageHours   Float    @default(0)
+  overageHours    Float    @default(0)
+  icPercentage    Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([lob, businessDate, intervalMinutes])
+  @@index([businessDate])
+  @@index([lob])
+}
