@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { get, set, del } from 'idb-keyval';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
@@ -98,6 +99,18 @@ function getDatesInRange(sDateStr: string, eDateStr: string, maxMs: number) {
     curr.setDate(curr.getDate() + 1);
   }
   return dates;
+}
+
+function parseSafeDate(dStr: any) {
+  if (!dStr) return null;
+  let str = String(dStr).trim();
+  let ms = new Date(str).getTime();
+  if (!isNaN(ms)) return ms;
+  if (str.includes('-') && str.includes(' ') && !str.includes('T')) {
+      ms = new Date(str.replace(/-/g, '/')).getTime();
+      if (!isNaN(ms)) return ms;
+  }
+  return null;
 }
 
 function parseDurationSecs(val: any) {
@@ -199,18 +212,26 @@ export const useInvoiceStore = create<InvoiceState>()(
       loadFromServer: async () => {
         set({ isLoading: true, error: null });
         try {
-           const { data, error: downloadError } = await supabase.storage.from('uploads').download('invoice_data.json');
-           if (downloadError || !data) {
+           const { data } = supabase.storage.from('uploads').getPublicUrl('invoice_data.json');
+           if (!data || !data.publicUrl) {
              set({ isLoading: false });
              return;
            }
-           const text = await data.text();
+
+           const response = await fetch(data.publicUrl + "?t=" + Date.now(), { cache: 'no-store' });
+           if (!response.ok) {
+              set({ isLoading: false });
+              return;
+           }
+           
+           const text = await response.text();
            const parsed = JSON.parse(text);
            
            set({ 
              globalProcessedData: parsed.globalProcessedData || {},
              sortedDates: parsed.sortedDates || [],
              agentInfo: parsed.agentInfo || {},
+             rawStatusParsed: parsed.rawStatusParsed || [],
              isLoading: false 
            });
         } catch (e: any) {
@@ -245,9 +266,12 @@ export const useInvoiceStore = create<InvoiceState>()(
               const emailRaw = row[eKey];
               if (!emailRaw) return;
               const status = row[sKey] ? String(row[sKey]).toUpperCase().trim() : '';
-              const st = row[startKey] ? new Date(row[startKey]).getTime() : null;
-              const enStr = row[endKey];
-              const en = enStr && enStr.trim() !== '' ? new Date(enStr).getTime() : new Date().getTime();
+              const st = parseSafeDate(row[startKey]);
+              
+              
+              const enRaw = row[endKey];
+              const enStr = enRaw && String(enRaw).trim() !== '' ? enRaw : null;
+              const en = enStr ? parseSafeDate(enStr) : new Date().getTime();
 
               if (st && en && !isNaN(st) && !isNaN(en) && status.includes('ONLINE') && en > st) {
                 if (st > maxMs) maxMs = st;
@@ -581,10 +605,22 @@ export const useInvoiceStore = create<InvoiceState>()(
 }),
 {
   name: 'octopus-invoice-storage',
+  storage: createJSONStorage(() => ({
+    getItem: async (name: string): Promise<string | null> => {
+      return (await get(name)) || null;
+    },
+    setItem: async (name: string, value: string): Promise<void> => {
+      await set(name, value);
+    },
+    removeItem: async (name: string): Promise<void> => {
+      await del(name);
+    },
+  })),
   partialize: (state) => ({ 
     globalProcessedData: state.globalProcessedData, 
     sortedDates: state.sortedDates, 
     agentInfo: state.agentInfo, 
+    rawStatusParsed: state.rawStatusParsed,
     currentShiftMode: state.currentShiftMode 
   }),
 }
