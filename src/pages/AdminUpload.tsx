@@ -70,15 +70,12 @@ export default function AdminUpload() {
       const jsonPayload = JSON.stringify({
            globalProcessedData: storeState.globalProcessedData,
            sortedDates: storeState.sortedDates,
-           agentInfo: storeState.agentInfo,
-           rawStatusParsed: storeState.rawStatusParsed
+           agentInfo: storeState.agentInfo
       });
-
-      const blob = new Blob([jsonPayload], { type: 'application/json' });
 
       const { error: uploadError } = await supabase.storage
         .from('uploads')
-        .upload('invoice_data.json', blob, { upsert: true, contentType: 'application/json' });
+        .upload('invoice_data.json', jsonPayload, { upsert: true, contentType: 'application/json' });
 
       if (uploadError) throw new Error("Failed to upload data to Supabase Storage: " + uploadError.message);
 
