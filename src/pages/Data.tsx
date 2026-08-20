@@ -297,34 +297,10 @@ export default function Data() {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="card p-5 mb-6 space-y-5"
       >
-        {/* Directory */}
-        <div className="flex flex-col gap-2 max-w-2xl">
-          <label className="input-label text-surface-600">1. Google Sheet Directory URL</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              className="input flex-1"
-              placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-              value={sheetUrl}
-              onChange={e => setSheetUrl(e.target.value)}
-            />
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleFetchDirectory}
-              disabled={isFetchingDir}
-              className={`btn-secondary whitespace-nowrap ${dirMap ? 'border-success-300 bg-success-50 text-success-700' : ''}`}
-            >
-              {isFetchingDir ? <RefreshCw className="animate-spin" size={16} /> : <Users size={16} />}
-              Connect
-              {dirMap && !isFetchingDir && <CheckCircle2 size={14} className="ml-1" />}
-            </motion.button>
-          </div>
-          <p className="text-xs text-surface-400 mt-1">Make sure the Google Sheet sharing is set to "Anyone with the link can view".</p>
-        </div>
+
 
         {/* File uploads */}
-        <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-surface-100">
+        <div className="flex flex-wrap items-center gap-4">
           <input type="file" ref={chatsInputRef} className="hidden" accept=".csv" onChange={e => handleFileUpload(e, 'chats')} />
           <input type="file" ref={statusInputRef} className="hidden" accept=".csv" onChange={e => handleFileUpload(e, 'status')} />
 
@@ -332,7 +308,7 @@ export default function Data() {
             onClick={() => chatsInputRef.current?.click()}
             className={`btn-secondary ${rawChats.length > 0 ? 'border-success-300 bg-success-50 text-success-700 hover:bg-success-100' : ''}`}
           >
-            <FileSpreadsheet size={16} /> 2. Chats Log
+            <FileSpreadsheet size={16} /> 1. Chats Log
             {rawChats.length > 0 && <span className="ml-1 text-xs">({rawChats.length})</span>}
           </motion.button>
 
@@ -340,7 +316,7 @@ export default function Data() {
             onClick={() => statusInputRef.current?.click()}
             className={`btn-secondary ${rawStatus.length > 0 ? 'border-success-300 bg-success-50 text-success-700 hover:bg-success-100' : ''}`}
           >
-            <FileClock size={16} /> 3. Agent Status
+            <FileClock size={16} /> 2. Agent Status
             {rawStatus.length > 0 && <span className="ml-1 text-xs">({rawStatus.length})</span>}
           </motion.button>
         </div>

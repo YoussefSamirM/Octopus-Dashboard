@@ -70,7 +70,7 @@ export default function App() {
           <img 
             src="/logo-icon.png" 
             alt="Background Logo" 
-            className="w-[700px] h-[700px] object-contain animate-breathe filter drop-shadow-2xl"
+            className="w-[350px] h-[350px] object-contain animate-breathe filter drop-shadow-2xl"
           />
         </div>
 
