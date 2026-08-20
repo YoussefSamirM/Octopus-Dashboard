@@ -4,7 +4,8 @@
 // ============================================
 
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/stores/appStore';
 import Sidebar from '@/components/layout/Sidebar';
 import ToastContainer from '@/components/layout/ToastContainer';
@@ -48,6 +49,8 @@ export default function App() {
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const ActivePage = pageComponents[activeTab] || Dashboard;
 
+  const [showSplash, setShowSplash] = useState(true);
+
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -56,13 +59,43 @@ export default function App() {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1200); // Wait 1.2s then fade out
+    return () => clearTimeout(timer);
+  }, []);
+
   if (!isAppLoggedIn) {
     return <Login />;
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-surface-50">
-      <Sidebar />
+    <>
+      <AnimatePresence>
+        {showSplash && (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, filter: "blur(5px)" }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="fixed inset-0 z-[100] bg-surface-50 dark:bg-surface-0 flex items-center justify-center"
+          >
+            <motion.img
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              src="/octopus-logo.png"
+              alt="Octopus Logo"
+              className="w-[180px] object-contain brightness-0 dark:invert opacity-90"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex h-screen w-screen overflow-hidden bg-surface-50">
+        <Sidebar />
 
       <main className="relative flex-1 flex flex-col h-screen overflow-x-hidden overflow-y-auto">
         {/* Global Background Animated Logo */}
@@ -97,7 +130,8 @@ export default function App() {
         </footer>
       </main>
 
-      <ToastContainer />
-    </div>
+        <ToastContainer />
+      </div>
+    </>
   );
 }
