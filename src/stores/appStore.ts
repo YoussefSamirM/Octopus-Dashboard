@@ -115,6 +115,7 @@ export const useAppStore = create<AppState>()(
         sidebarCollapsed: state.sidebarCollapsed,
         lobConfig: state.lobConfig,
         darkMode: state.darkMode,
+        activeTab: state.activeTab,
       }),
     }
   )
