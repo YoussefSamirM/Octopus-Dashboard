@@ -4,22 +4,23 @@ import gsap from 'gsap';
 interface GSAPPageTransitionProps {
   children: React.ReactNode;
   pageKey: string;
+  delay?: number;
 }
 
-export default function GSAPPageTransition({ children, pageKey }: GSAPPageTransitionProps) {
+export default function GSAPPageTransition({ children, pageKey, delay = 0 }: GSAPPageTransitionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline();
+      const tl = gsap.timeline({ delay });
 
       // 1. Main container smooth fade in
       tl.fromTo(
         containerRef.current,
         { opacity: 0 },
-        { opacity: 1, duration: 0.5, ease: 'power2.out' }
+        { opacity: 1, duration: 0.15, ease: 'power2.out' }
       );
 
       // 2. Stagger headers & descriptions smoothly
@@ -27,9 +28,9 @@ export default function GSAPPageTransition({ children, pageKey }: GSAPPageTransi
       if (headers && headers.length > 0) {
         tl.fromTo(
           headers,
-          { opacity: 0, y: 15 },
-          { opacity: 1, y: 0, duration: 0.6, stagger: 0.04, ease: 'power3.out' },
-          "-=0.3"
+          { opacity: 0, y: 5 },
+          { opacity: 1, y: 0, duration: 0.2, stagger: 0.02, ease: 'power3.out' },
+          "-=0.1"
         );
       }
 
@@ -38,9 +39,9 @@ export default function GSAPPageTransition({ children, pageKey }: GSAPPageTransi
       if (uiElements && uiElements.length > 0) {
         tl.fromTo(
           uiElements,
-          { opacity: 0, y: 20, scale: 0.98 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.03, ease: 'power3.out' },
-          "-=0.4"
+          { opacity: 0, y: 10, scale: 0.99 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.25, stagger: 0.015, ease: 'power3.out' },
+          "-=0.15"
         );
       }
 
@@ -49,9 +50,9 @@ export default function GSAPPageTransition({ children, pageKey }: GSAPPageTransi
       if (tableRows && tableRows.length > 0) {
         tl.fromTo(
           tableRows,
-          { opacity: 0, x: -15 },
-          { opacity: 1, x: 0, duration: 0.5, stagger: 0.02, ease: 'power3.out' },
-          "-=0.4"
+          { opacity: 0, x: -5 },
+          { opacity: 1, x: 0, duration: 0.2, stagger: 0.005, ease: 'power3.out' },
+          "-=0.2"
         );
       }
 

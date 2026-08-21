@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useInvoiceStore } from "../../stores/invoiceStore";
-import { Users, Calendar, Target, Clock, CheckCircle, XCircle, TrendingDown, TrendingUp, ChevronRight } from "lucide-react";
+import { Users, Calendar, Target, Clock, CheckCircle, XCircle, TrendingDown, TrendingUp, ChevronRight, Activity } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
 interface ICDayDashboardProps {
   iso: string;
   lobId: string;
   onViewAgentDetails: (sk: number) => void;
+  viewMode?: 'overview' | 'details';
 }
 const LOBs = [
   { id: "Combined", title: "Combined" },
@@ -16,6 +19,7 @@ export default function ICDayDashboard({
   iso,
   lobId,
   onViewAgentDetails,
+  viewMode = 'overview'
 }: ICDayDashboardProps) {
   const { globalProcessedData, currentShiftMode } = useInvoiceStore();
   const dayData = globalProcessedData[iso]?.[currentShiftMode];
@@ -38,40 +42,99 @@ export default function ICDayDashboard({
     <div className="max-w-[1550px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-[32px] gap-4">
         <div>
-          <h2 className="text-[24px] font-[900] text-surface-900 mb-2">
+          <h2 className="text-2xl font-semibold text-surface-900 mb-2">
             Interval Breakdown
           </h2>
-          <div className="flex items-center gap-2 text-surface-500 font-medium text-[14px]">
+          <div className="flex items-center gap-2 text-surface-500 font-medium text-sm">
             <span>{LOBs.find((l) => l.id === lobId)?.title}</span>
             <span>•</span>
-            <span className="font-bold">{iso}</span>
+            <span className="font-semibold">{iso}</span>
           </div>
         </div>
       </div>
 
-      <div className="bg-surface-0 border border-surface-200 rounded-[16px] overflow-hidden shadow-sm overflow-x-auto mb-[40px]">
-        <table className="w-full border-collapse text-left whitespace-nowrap">
+      {viewMode === 'overview' ? (
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="card p-6 border-l-4" style={{ borderLeftColor: '#64748b' }}>
+            <div className="flex items-center gap-3 mb-2">
+              <Clock className="text-surface-400" size={20} />
+              <h3 className="text-sm font-semibold text-surface-500">Total Required</h3>
+            </div>
+            <p className="text-3xl font-bold text-surface-900">{formatTimeSecs(lobData.req)}</p>
+          </div>
+          <div className="card p-6 border-l-4" style={{ borderLeftColor: '#3b82f6' }}>
+            <div className="flex items-center gap-3 mb-2">
+              <Activity className="text-surface-400" size={20} />
+              <h3 className="text-sm font-semibold text-surface-500">Total Actual</h3>
+            </div>
+            <p className="text-3xl font-bold text-surface-900">{formatTimeSecs(lobData.act)}</p>
+          </div>
+          <div className="card p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <CheckCircle className="text-brand-500" size={20} />
+              <h3 className="text-sm font-semibold text-surface-500">Day IC%</h3>
+            </div>
+            <p className={`text-3xl font-bold ${lobData.req === 0 || (lobData.bill / lobData.req) * 100 >= 100 ? 'text-success-600' : 'text-danger-600'}`}>
+              {formatPerc(lobData.req === 0 ? 100 : (lobData.bill / lobData.req) * 100)}
+            </p>
+          </div>
+        </div>
+        
+        <div className="card p-4 sm:p-6 h-[280px] sm:h-[400px]">
+          <h3 className="text-base font-semibold text-surface-900 mb-2 sm:mb-6">Intraday Curve (Required vs Actual)</h3>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={lobData.intervals} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorReqIntraday" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#94a3b8" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorActIntraday" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} dy={10} interval="preserveStartEnd" minTickGap={30} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} width={80} 
+                     tickFormatter={(val) => Math.round(val / 3600) + 'h'} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                formatter={(value: number) => formatTimeSecs(value)}
+                labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '8px' }}
+              />
+              <Area type="monotone" dataKey="req" name="Required" stroke="#94a3b8" strokeWidth={3} fillOpacity={1} fill="url(#colorReqIntraday)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+              <Area type="monotone" dataKey="act" name="Actual" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorActIntraday)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      ) : (
+      <div className="card overflow-hidden shadow-sm mb-10 w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="min-w-full inline-block align-middle">
+          <table className="min-w-full border-collapse text-left whitespace-nowrap">
           <thead>
             <tr>
-              <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 uppercase tracking-[0.5px] px-[24px] py-[16px] border-b border-surface-200">
+              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                 Time Interval
               </th>
-              <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 uppercase tracking-[0.5px] px-[24px] py-[16px] border-b border-surface-200">
+              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                 Required
               </th>
-              <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 uppercase tracking-[0.5px] px-[24px] py-[16px] border-b border-surface-200">
+              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                 Actual
               </th>
-              <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 uppercase tracking-[0.5px] px-[24px] py-[16px] border-b border-surface-200">
+              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                 Billable
               </th>
-              <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 uppercase tracking-[0.5px] px-[24px] py-[16px] border-b border-surface-200 text-center">
+              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200 text-center">
                 IC %
               </th>
-              <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 uppercase tracking-[0.5px] px-[24px] py-[16px] border-b border-surface-200">
+              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                 O/U
               </th>
-              <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 uppercase tracking-[0.5px] px-[24px] py-[16px] border-b border-surface-200">
+              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
               </th>
             </tr>
           </thead>
@@ -80,11 +143,11 @@ export default function ICDayDashboard({
               <tr>
                 <td colSpan={7} className="text-center py-12 text-surface-500">
                   <Calendar className="mx-auto h-12 w-12 text-surface-300 mb-4" />
-                  <p className="text-[15px] font-medium text-surface-600">No interval data available</p>
+                  <p className="text-sm font-medium text-surface-600">No interval data available</p>
                 </td>
               </tr>
             ) : (
-              lobData.intervals.map((intObj, i) => {
+              lobData.intervals.map((intObj: any, i: number) => {
                 if (intObj.req > 0 || intObj.act > 0) {
                   let ic = intObj.req === 0 ? 100 : (intObj.act / intObj.req) * 100;
                   let isPass = intObj.act >= intObj.req;
@@ -93,46 +156,46 @@ export default function ICDayDashboard({
                       key={i}
                       className="hover:bg-brand-50/30 transition-colors group"
                     >
-                      <td className="px-[24px] py-[16px]">
-                        <span className="font-[700] text-[14px] text-surface-900">
+                      <td className="px-6 py-4">
+                        <span className="font-semibold text-sm text-surface-900">
                           {intObj.label}
                         </span>
                       </td>
-                      <td className="px-[24px] py-[16px] font-[600] text-[13px] text-surface-600">
+                      <td className="px-6 py-4 font-semibold text-sm text-surface-600">
                         {formatTimeSecs(intObj.req)}
                       </td>
-                      <td className="px-[24px] py-[16px] font-[600] text-[13px] text-surface-900">
+                      <td className="px-6 py-4 font-semibold text-sm text-surface-900">
                         {formatTimeSecs(intObj.act)}
                       </td>
-                      <td className="px-[24px] py-[16px] font-[600] text-[13px] text-surface-900">
+                      <td className="px-6 py-4 font-semibold text-sm text-surface-900">
                         {formatTimeSecs(intObj.bill)}
                       </td>
-                      <td className="px-[24px] py-[16px] text-center">
-                        <span className={`text-[13px] font-[700] ${isPass ? 'text-success-600' : 'text-danger-600'}`}>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`text-sm font-semibold ${isPass ? 'text-success-600' : 'text-danger-600'}`}>
                           {formatPerc(ic)}
                         </span>
                       </td>
-                      <td className="px-[24px] py-[16px]">
+                      <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           {intObj.lost > 0 && (
-                            <span className="text-[12px] font-[600] text-danger-600">
+                            <span className="text-xs font-semibold text-danger-600">
                               -{formatTimeSecs(intObj.lost)}
                             </span>
                           )}
                           {intObj.over > 0 && (
-                            <span className="text-[12px] font-[600] text-success-600">
+                            <span className="text-xs font-semibold text-success-600">
                               +{formatTimeSecs(intObj.over)}
                             </span>
                           )}
                           {intObj.lost === 0 && intObj.over === 0 && (
-                            <span className="text-[12px] font-[600] text-surface-400">-</span>
+                            <span className="text-xs font-semibold text-surface-400">-</span>
                           )}
                         </div>
                       </td>
-                      <td className="px-[24px] py-[16px] text-right">
+                      <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => onViewAgentDetails(intObj.sk)}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-full text-surface-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-md text-surface-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                           title="View Agent Details"
                         >
                           <ChevronRight size={20} />
@@ -146,7 +209,9 @@ export default function ICDayDashboard({
             )}
           </tbody>
         </table>
+        </div>
       </div>
+      )}
     </div>
   );
 }

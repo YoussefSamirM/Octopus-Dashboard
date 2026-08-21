@@ -1,5 +1,5 @@
 // ============================================
-// WFM Platform — Toast Notification System
+// WFM Platform - Toast Notification System
 // Stacked notifications with auto-dismiss
 // ============================================
 
@@ -66,7 +66,7 @@ function ToastItem({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 20, scale: 0.95 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className={`flex items-center gap-3 min-w-[300px] max-w-[400px] px-4 py-3.5 rounded-lg bg-surface-0 dark:bg-surface-0/60 dark:backdrop-blur-2xl shadow-xl border border-surface-200 dark:border-white/10 border-l-[4px] ${borders[toast.type]} pointer-events-auto`}
+      className={`flex items-center gap-3 min-w-[300px] max-w-[400px] px-4 py-3.5 rounded-md bg-surface-0 dark:bg-surface-0/60 dark:backdrop-blur-2xl border border-surface-200 dark:border-white/10 border-l-[4px] ${borders[toast.type]} pointer-events-auto`}
     >
       <Icon className={`${colors[toast.type]} flex-shrink-0`} size={20} />
       <p className="text-sm font-medium text-surface-800 flex-1 leading-snug">{toast.message}</p>

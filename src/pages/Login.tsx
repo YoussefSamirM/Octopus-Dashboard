@@ -205,12 +205,12 @@ export default function Login() {
       setError('Google Authentication Failed');
       gsap.fromTo(leftSideRef.current, { x: -10 }, { x: 0, duration: 0.4, ease: 'elastic.out(1, 0.3)' });
     },
-    // Attempting to filter by domain if the browser supports it
+  // Attempting to filter by domain if the browser supports it
     hosted_domain: 'talabat.com'
   });
 
   return (
-    <div className="relative min-h-screen w-full bg-surface-0 dark:bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] dark:from-brand-950/20 dark:via-[#020617] dark:to-black overflow-hidden flex">
+    <div className="relative min-h-screen w-full bg-surface-0 dark:bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] dark:from-brand-950/20 dark:via-[#020617] dark:to-black overflow-hidden flex font-legacy">
       {/* Left Side: Form */}
       <div
         ref={leftSideRef}

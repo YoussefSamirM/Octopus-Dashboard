@@ -4,8 +4,8 @@
 // ============================================
 
 
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import gsap from 'gsap';
 import { useAppStore } from '@/stores/appStore';
 import Sidebar from '@/components/layout/Sidebar';
 import ToastContainer from '@/components/layout/ToastContainer';
@@ -23,7 +23,7 @@ import BrightskiesOverview from '@/pages/BrightskiesOverview';
 import ICView from '@/pages/ICView';
 import AdminUpload from '@/pages/AdminUpload';
 import type { TabId } from '@/types';
-import { Radar } from 'lucide-react';
+import { Radar, Menu } from 'lucide-react';
 
 import GSAPPageTransition from '@/components/common/GSAPPageTransition';
 
@@ -48,8 +48,13 @@ export default function App() {
   const darkMode = useAppStore((s) => s.darkMode);
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const ActivePage = pageComponents[activeTab] || Dashboard;
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar);
 
   const [showSplash, setShowSplash] = useState(true);
+  const splashRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLImageElement>(null);
+  const appContainerRef = useRef<HTMLDivElement>(null);
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     if (darkMode) {
@@ -59,12 +64,35 @@ export default function App() {
     }
   }, [darkMode]);
 
+  useLayoutEffect(() => {
+    if (!isAppLoggedIn) return;
+    
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        onComplete: () => {
+          setShowSplash(false);
+        }
+      });
+      
+      // Initial state
+      gsap.set(appContainerRef.current, { opacity: 0 });
+      gsap.set(logoRef.current, { scale: 0.8, opacity: 0 });
+      
+      // Animate logo in
+      tl.to(logoRef.current, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" })
+        // Hold for a moment
+        .to({}, { duration: 0.1 })
+        // Animate splash out and app in simultaneously
+        .to(splashRef.current, { opacity: 0, filter: "blur(5px)", duration: 0.3, ease: "power2.inOut" })
+        .to(appContainerRef.current, { opacity: 1, duration: 0.3, ease: "power2.out" }, "<0.1");
+        
+    });
+    return () => ctx.revert();
+  }, [isAppLoggedIn]);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 1200); // Wait 1.2s then fade out
-    return () => clearTimeout(timer);
-  }, []);
+    isFirstLoad.current = false;
+  }, [activeTab]);
 
   if (!isAppLoggedIn) {
     return <Login />;
@@ -72,43 +100,36 @@ export default function App() {
 
   return (
     <>
-      <AnimatePresence>
-        {showSplash && (
-          <motion.div
-            key="splash"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, filter: "blur(5px)" }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
-            className="fixed inset-0 z-[100] bg-surface-50 dark:bg-surface-0 flex items-center justify-center"
-          >
-            <motion.img
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              src="/octopus-logo.png"
-              alt="Octopus Logo"
-              className="w-[180px] object-contain brightness-0 dark:invert opacity-90"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showSplash && (
+        <div
+          ref={splashRef}
+          className="fixed inset-0 z-[100] bg-surface-50 dark:bg-surface-0 flex items-center justify-center pointer-events-none"
+        >
+          <img
+            ref={logoRef}
+            src="/octopus-logo.png"
+            alt="Octopus Logo"
+            className="w-[180px] object-contain brightness-0 dark:invert opacity-90"
+          />
+        </div>
+      )}
 
-      <div className="flex h-screen w-screen overflow-hidden bg-surface-50">
+      <div ref={appContainerRef} className="flex h-screen w-screen overflow-hidden bg-surface-50 opacity-0 relative">
         <Sidebar />
 
       <main className="relative flex-1 flex flex-col h-screen overflow-x-hidden overflow-y-auto">
-        {/* Global Background Animated Logo */}
-        <div className="fixed inset-y-0 right-0 z-0 pointer-events-none flex items-center justify-center opacity-[0.03] dark:opacity-[0.04] overflow-hidden transition-all duration-500" style={{ left: collapsed ? '64px' : '240px' }}>
-          <img 
-            src="/logo-icon.png" 
-            alt="Background Logo" 
-            className="w-[350px] h-[350px] object-contain animate-breathe filter drop-shadow-2xl"
-          />
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between bg-[#10104a] dark:bg-surface-0 px-4 py-3 border-b border-white/10 dark:border-surface-100 flex-shrink-0 z-20">
+          <div className="flex items-center gap-2">
+            <img src="/octopus-logo.png" alt="Octopus" className="h-6 w-auto object-contain brightness-0 invert" />
+          </div>
+          <button onClick={toggleSidebar} className="text-white outline-none p-1">
+            <Menu size={24} />
+          </button>
         </div>
 
-        <div className="flex-1 px-8 py-8 lg:px-10 lg:py-8 relative z-10">
-          <GSAPPageTransition pageKey={activeTab}>
+        <div className="flex-1 px-3 pb-4 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8 relative z-10 overflow-x-hidden">
+          <GSAPPageTransition pageKey={activeTab} delay={isFirstLoad.current ? 0.5 : 0}>
             <ActivePage />
           </GSAPPageTransition>
         </div>
@@ -117,7 +138,7 @@ export default function App() {
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
               <img src="/octopus-header.png" alt="Octopus" className="h-5 w-auto object-contain opacity-90 dark:brightness-0 dark:invert" />
-              <span className="text-xs font-bold text-surface-700 tracking-tight">Octopus Dashboard</span>
+              <span className="text-xs font-semibold text-surface-700 tracking-tight">Octopus Dashboard</span>
             </div>
             <div className="hidden sm:block h-3 w-[1px] bg-surface-300 dark:bg-white/20" />
             <p className="text-[10px] text-surface-400">&copy; {new Date().getFullYear()}. All rights reserved. Confidential & Proprietary.</p>
@@ -125,7 +146,7 @@ export default function App() {
           
           <div className="text-[10px] sm:text-[11px] text-surface-500 font-medium tracking-wide flex items-center gap-1.5">
             <span className="text-surface-400">Designed and Developed by</span>
-            <span className="font-bold text-brand-600">Yousef Samir</span>
+            <span className="font-semibold text-brand-600">Yousef Samir</span>
           </div>
         </footer>
       </main>

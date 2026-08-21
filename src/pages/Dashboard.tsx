@@ -20,7 +20,7 @@ export default function Dashboard() {
   const setActiveTab = useAppStore((s) => s.setActiveTab);
 
   return (
-    <div className="relative min-h-[80vh] max-w-[1200px] mx-auto rounded-xl">
+    <div className="relative min-h-[80vh] max-w-[1200px] mx-auto rounded-md">
       <div className="relative z-10">
         <div className="page-header">
           <h1 className="page-title">Home</h1>
@@ -29,7 +29,7 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="mb-6 mt-8">
-          <h2 className="text-xs font-medium text-surface-400 uppercase tracking-wider mb-3">Quick Actions</h2>
+          <h2 className="text-xs font-medium text-surface-400 mb-3">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {quickActions.map((action) => (
               <button

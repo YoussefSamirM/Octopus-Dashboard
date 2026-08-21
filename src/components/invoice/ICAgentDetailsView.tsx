@@ -43,7 +43,16 @@ export default function ICAgentDetailsView({
       lobs: {},
     };
     let effLob = info.lobs[iso] || "Unknown LOB";
-    if (effLob === lobId) {
+    let isMatch = false;
+    if (lobId === "ICView") {
+      isMatch = effLob === "Combined" || effLob === "TPro";
+    } else if (lobId === "Total") {
+      isMatch = effLob !== "Unknown LOB";
+    } else {
+      isMatch = effLob === lobId;
+    }
+
+    if (isMatch) {
       let overlapStart = Math.max(log.start, intStartMs);
       let overlapEnd = Math.min(log.end, intEndMs);
       let durMs = overlapEnd - overlapStart;
@@ -98,86 +107,86 @@ export default function ICAgentDetailsView({
   const ic = intObj.req === 0 ? 100 : (intObj.act / intObj.req) * 100;
   return (
     <div className="max-w-[1550px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-[32px] gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-[24px] font-[900] text-surface-900 mb-2">
+          <h2 className="text-2xl font-semibold text-surface-900 mb-2">
             Interval Details
           </h2>
-          <div className="flex items-center gap-2 text-surface-500 font-medium text-[14px]">
+          <div className="flex items-center gap-2 text-surface-500 font-medium text-sm">
             <span>{LOBs.find((l) => l.id === lobId)?.title}</span>
             <span>•</span>
             <span>{iso}</span>
             <span>•</span>
-            <span className="font-bold">{lbl}</span>
+            <span className="font-semibold">{lbl}</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[20px] mb-[32px]">
-        <div className="bg-surface-0 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] shadow-sm">
-          <div className="flex justify-between items-center text-[12px] font-[700] text-surface-500 uppercase">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="card p-6 flex flex-col gap-3 shadow-sm">
+          <div className="flex justify-between items-center text-xs font-semibold text-surface-500">
             <span>Interval REQ</span>
           </div>
-          <div className="text-[28px] font-[900] text-surface-900">
+          <div className="text-3xl font-semibold text-surface-900">
             {formatTimeSecs(intObj.req)}
           </div>
         </div>
 
-        <div className="bg-surface-0 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] shadow-sm">
-          <div className="flex justify-between items-center text-[12px] font-[700] text-surface-500 uppercase">
+        <div className="card p-6 flex flex-col gap-3 shadow-sm">
+          <div className="flex justify-between items-center text-xs font-semibold text-surface-500">
             <span>Interval Actual</span>
           </div>
-          <div className="text-[28px] font-[900] text-surface-900">
+          <div className="text-3xl font-semibold text-surface-900">
             {formatTimeSecs(intObj.act)}
           </div>
         </div>
 
-        <div className="bg-surface-0 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] shadow-sm">
-          <div className="flex justify-between items-center text-[12px] font-[700] text-surface-500 uppercase">
+        <div className="card p-6 flex flex-col gap-3 shadow-sm">
+          <div className="flex justify-between items-center text-xs font-semibold text-surface-500">
             <span>Agents Online</span>
           </div>
-          <div className="text-[28px] font-[900] text-surface-900">
+          <div className="text-3xl font-semibold text-surface-900">
             {agentList.length}
           </div>
         </div>
 
-        <div className="bg-surface-0 border border-surface-200 rounded-[16px] p-[24px] flex flex-col gap-[12px] shadow-sm">
-          <div className="flex justify-between items-center text-[12px] font-[700] text-surface-500 uppercase">
+        <div className="card p-6 flex flex-col gap-3 shadow-sm">
+          <div className="flex justify-between items-center text-xs font-semibold text-surface-500">
             <span>Actual IC%</span>
           </div>
           <div
-            className={`text-[28px] font-[900] ${ic >= 100 ? "text-success-600" : "text-danger-600"}`}
+            className={`text-3xl font-semibold ${ic >= 100 ? "text-success-600" : "text-danger-600"}`}
           >
             {formatPerc(ic)}
           </div>
         </div>
       </div>
-      <div className="flex flex-col md:flex-row items-end gap-[16px] bg-surface-0 p-[20px] rounded-[16px] border border-surface-200 mb-[24px] shadow-sm">
-        <div className="flex-[2] relative flex flex-col gap-[8px] w-full">
-          <label className="text-[12px] font-[700] text-surface-500">
+      <div className="flex flex-col md:flex-row items-end gap-4 card p-5 mb-6 shadow-sm">
+        <div className="flex-[2] relative flex flex-col gap-2 w-full">
+          <label className="text-xs font-semibold text-surface-500">
             Search Agent
           </label>
           <div className="relative">
-            <Search className="absolute left-[16px] top-1/2 -translate-y-1/2 text-surface-400" size={16} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" size={16} />
             <input
               type="text"
               placeholder="Name, Email, or HR ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-[48px] pl-[44px] pr-[16px] bg-surface-50/50 border border-surface-200 rounded-[10px] text-[14px] font-[500] focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all placeholder:text-surface-400"
+              className="w-full h-12 pl-11 pr-4 bg-surface-50/50 border border-surface-200 rounded-md text-sm font-medium focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all placeholder:text-surface-400"
             />
           </div>
         </div>
-        <div className="flex-1 flex flex-col gap-[8px] w-full">
-          <label className="text-[12px] font-[700] text-surface-500">
+        <div className="flex-1 flex flex-col gap-2 w-full">
+          <label className="text-xs font-semibold text-surface-500">
             Team Leader
           </label>
           <div className="relative">
-            <UserCircle className="absolute left-[16px] top-1/2 -translate-y-1/2 text-surface-400" size={16} />
+            <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" size={16} />
             <select
               value={tlFilter}
               onChange={(e) => setTlFilter(e.target.value)}
-              className="w-full h-[48px] pl-[44px] pr-[16px] bg-surface-50/50 border border-surface-200 rounded-[10px] text-[14px] font-[500] focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all appearance-none cursor-pointer"
+              className="w-full h-12 pl-11 pr-4 bg-surface-50/50 border border-surface-200 rounded-md text-sm font-medium focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all appearance-none cursor-pointer"
             >
               <option value="">All Team Leaders</option>
               {tls.map((t) => (
@@ -188,16 +197,16 @@ export default function ICAgentDetailsView({
             </select>
           </div>
         </div>
-        <div className="flex-1 flex flex-col gap-[8px] w-full">
-          <label className="text-[12px] font-[700] text-surface-500">
+        <div className="flex-1 flex flex-col gap-2 w-full">
+          <label className="text-xs font-semibold text-surface-500">
             Supervisor (OSV)
           </label>
           <div className="relative">
-            <ShieldAlert className="absolute left-[16px] top-1/2 -translate-y-1/2 text-surface-400" size={16} />
+            <ShieldAlert className="absolute left-4 top-1/2 -translate-y-1/2 text-surface-400" size={16} />
             <select
               value={osvFilter}
               onChange={(e) => setOsvFilter(e.target.value)}
-              className="w-full h-[48px] pl-[44px] pr-[16px] bg-surface-50/50 border border-surface-200 rounded-[10px] text-[14px] font-[500] focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all appearance-none cursor-pointer"
+              className="w-full h-12 pl-11 pr-4 bg-surface-50/50 border border-surface-200 rounded-md text-sm font-medium focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all appearance-none cursor-pointer"
             >
               <option value="">All Supervisors</option>
               {osvs.map((o) => (
@@ -210,27 +219,27 @@ export default function ICAgentDetailsView({
         </div>
       </div>
 
-      <div className="bg-surface-0 border border-surface-200 rounded-[16px] shadow-sm overflow-hidden mb-[40px]">
+      <div className="card shadow-sm overflow-hidden mb-10">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left whitespace-nowrap">
             <thead>
               <tr>
-                <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
+                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                   HR ID
                 </th>
-                <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
+                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                   Name
                 </th>
-                <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
+                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                   Email
                 </th>
-                <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
+                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                   TL
                 </th>
-                <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200">
+                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
                   SV
                 </th>
-                <th className="bg-surface-50/80 font-[700] text-[12px] text-surface-500 px-[24px] py-[16px] border-b border-surface-200 text-right">
+                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200 text-right">
                   Duration
                 </th>
               </tr>
@@ -238,10 +247,10 @@ export default function ICAgentDetailsView({
             <tbody className="divide-y divide-surface-100">
               {filteredAgents.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-12 text-surface-500">
+                  <td colSpan={6} className="text-center py-12 text-surface-500">
                     <Users className="mx-auto h-12 w-12 text-surface-300 mb-4" />
-                    <p className="text-[15px] font-medium text-surface-600">No Agents found</p>
-                    <p className="text-[13px] mt-1">Try adjusting your search filters.</p>
+                    <p className="text-sm font-medium text-surface-600">No Agents found</p>
+                    <p className="text-sm mt-1">Try adjusting your search filters.</p>
                   </td>
                 </tr>
               ) : (
@@ -250,22 +259,22 @@ export default function ICAgentDetailsView({
                     key={a.email}
                     className="hover:bg-brand-50/30 transition-colors group"
                   >
-                    <td className="px-[24px] py-[16px] text-[13px] text-surface-600 font-medium">
+                    <td className="px-6 py-4 text-sm text-surface-600 font-medium">
                       {a.hr}
                     </td>
-                    <td className="px-[24px] py-[16px] text-[14px] text-surface-900 font-[600] group-hover:text-brand-700 transition-colors">
+                    <td className="px-6 py-4 text-sm text-surface-900 font-semibold group-hover:text-brand-700 transition-colors">
                       {a.name}
                     </td>
-                    <td className="px-[24px] py-[16px] text-[13px] text-surface-600 font-medium">
+                    <td className="px-6 py-4 text-sm text-surface-600 font-medium">
                       {a.email}
                     </td>
-                    <td className="px-[24px] py-[16px] text-[13px] text-surface-700 font-medium">
+                    <td className="px-6 py-4 text-sm text-surface-700 font-medium">
                       {a.tl}
                     </td>
-                    <td className="px-[24px] py-[16px] text-[13px] text-surface-700 font-medium">
+                    <td className="px-6 py-4 text-sm text-surface-700 font-medium">
                       {a.osv}
                     </td>
-                    <td className="px-[24px] py-[16px] text-right font-[700] text-[13px] text-surface-900">
+                    <td className="px-6 py-4 text-right font-semibold text-sm text-surface-900">
                       {formatTimeFromMs(a.durMs)}
                     </td>
                   </tr>

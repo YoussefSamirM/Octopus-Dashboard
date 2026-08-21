@@ -10,6 +10,7 @@ import {
   Tooltip, ResponsiveContainer, Cell, Legend, ReferenceLine
 } from 'recharts';
 import { useAppStore } from '@/stores/appStore';
+import { useDataStore } from '@/stores/dataStore';
 import {
   parseDirectory, parseChats, parseStatus,
   processAHT, processCPH, exportToExcel,
@@ -95,88 +96,25 @@ export default function Data() {
   const [boundsEnd, setBoundsEnd] = useState('');
 
   const [dirMap, setDirMap] = useState<Record<string, DirectoryMeta> | null>(null);
-  const [rawChats, setRawChats] = useState<ParsedChat[]>([]);
-  const [rawStatus, setRawStatus] = useState<ParsedStatus[]>([]);
+  const { rawChats, rawStatus } = useDataStore();
 
   const [ahtResult, setAhtResult] = useState<AHTResult | null>(null);
   const [cphResult, setCphResult] = useState<CPHResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('wfm_sheet_url') || '');
-  const [isFetchingDir, setIsFetchingDir] = useState(false);
-
-  const chatsInputRef = useRef<HTMLInputElement>(null);
-  const statusInputRef = useRef<HTMLInputElement>(null);
-
-  // ─── FILE UPLOAD ───
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'chats' | 'status') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      try {
-        if (type === 'chats') {
-          const chats = parseChats(content, dirMap || {});
-          if (chats.length === 0) {
-            addToast({ message: 'Warning: 0 valid chats found. Check columns.', type: 'error' });
-          } else {
-            setRawChats(chats);
-            addToast({ message: `Chats Loaded (${chats.length})`, type: 'success' });
-          }
-        } else {
-          const statuses = parseStatus(content);
-          if (statuses.length === 0) {
-            addToast({ message: 'Warning: 0 valid statuses found. Check columns.', type: 'error' });
-          } else {
-            setRawStatus(statuses);
-            addToast({ message: `Status Loaded (${statuses.length})`, type: 'success' });
-          }
-        }
-      } catch (err: any) {
-        addToast({ message: `Error parsing file: ${err.message}`, type: 'error' });
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  };
-
-  // ─── FETCH DIRECTORY ───
-  const handleFetchDirectory = async () => {
-    if (!sheetUrl) { addToast({ message: 'Please enter a Google Sheet URL', type: 'warning' }); return; }
-    const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (!match) { addToast({ message: 'Invalid Google Sheet URL format', type: 'error' }); return; }
-    const sheetId = match[1];
-    setIsFetchingDir(true);
-    try {
-      const res = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`);
-      if (!res.ok) throw new Error('Make sure the sheet is public ("Anyone with link can view")');
-      const csvContent = await res.text();
-      const map = parseDirectory(csvContent);
-      if (Object.keys(map).length === 0) throw new Error('Could not parse any valid directory data from the sheet.');
-      setDirMap(map);
-      localStorage.setItem('wfm_sheet_url', sheetUrl);
-      addToast({ message: 'Directory Fetched Successfully', type: 'success' });
-    } catch (err: any) {
-      addToast({ message: `Error fetching directory: ${err.message}`, type: 'error' });
-    } finally {
-      setIsFetchingDir(false);
-    }
-  };
-
   // ─── PROCESS DATA ───
-  const handleApplyFilters = () => {
-    if (rawChats.length === 0) { addToast({ message: 'Please upload Chats first', type: 'warning' }); return; }
+  useEffect(() => {
+    if (rawChats.length === 0) return;
     setIsProcessing(true);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const bStart = boundsStart ? new Date(boundsStart).getTime() : null;
       const bEnd   = boundsEnd   ? new Date(boundsEnd).getTime()   : null;
       setAhtResult(processAHT(rawChats, siteFilter, bStart, bEnd));
       setCphResult(processCPH(rawChats, rawStatus, siteFilter, lobFilter, bStart, bEnd));
       setIsProcessing(false);
-      addToast({ message: 'Data processed successfully', type: 'success' });
     }, 100);
-  };
+    return () => clearTimeout(timer);
+  }, [rawChats, rawStatus, siteFilter, lobFilter, boundsStart, boundsEnd]);
 
   // ─── EXPORT ───
   const handleExport = async () => {
@@ -284,7 +222,7 @@ export default function Data() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="page-header mb-6"
+        className="page-header"
       >
         <h1 className="page-title">AHT & CPH Calculator</h1>
         <p className="page-description">Calculate, visualize and export AHT, CPH, SLA, Occupancy and Utilization metrics.</p>
@@ -297,41 +235,17 @@ export default function Data() {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="card p-5 mb-6 space-y-5"
       >
-
-
-        {/* File uploads */}
-        <div className="flex flex-wrap items-center gap-4">
-          <input type="file" ref={chatsInputRef} className="hidden" accept=".csv" onChange={e => handleFileUpload(e, 'chats')} />
-          <input type="file" ref={statusInputRef} className="hidden" accept=".csv" onChange={e => handleFileUpload(e, 'status')} />
-
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            onClick={() => chatsInputRef.current?.click()}
-            className={`btn-secondary ${rawChats.length > 0 ? 'border-success-300 bg-success-50 text-success-700 hover:bg-success-100' : ''}`}
-          >
-            <FileSpreadsheet size={16} /> 1. Chats Log
-            {rawChats.length > 0 && <span className="ml-1 text-xs">({rawChats.length})</span>}
-          </motion.button>
-
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            onClick={() => statusInputRef.current?.click()}
-            className={`btn-secondary ${rawStatus.length > 0 ? 'border-success-300 bg-success-50 text-success-700 hover:bg-success-100' : ''}`}
-          >
-            <FileClock size={16} /> 2. Agent Status
-            {rawStatus.length > 0 && <span className="ml-1 text-xs">({rawStatus.length})</span>}
-          </motion.button>
-        </div>
-
         {/* Filters */}
-        <div className="flex flex-wrap items-end gap-4 pt-4 border-t border-surface-100">
-          <div className="flex-1 min-w-[150px]">
-            <label className="input-label">Start Boundary</label>
+        <div className="flex flex-wrap items-end gap-4 pt-2">
+          <div className="w-full sm:w-auto sm:flex-1 min-w-[150px] max-w-[250px]">
+            <label className="input-label">Start Time</label>
             <input type="datetime-local" className="input" value={boundsStart} onChange={e => setBoundsStart(e.target.value)} />
           </div>
-          <div className="flex-1 min-w-[150px]">
-            <label className="input-label">End Boundary</label>
+          <div className="w-full sm:w-auto sm:flex-1 min-w-[150px] max-w-[250px]">
+            <label className="input-label">End Time</label>
             <input type="datetime-local" className="input" value={boundsEnd} onChange={e => setBoundsEnd(e.target.value)} />
           </div>
-          <div className="flex-1 min-w-[150px]">
+          <div className="w-full sm:w-auto sm:flex-1 min-w-[150px] max-w-[250px]">
             <label className="input-label">Site</label>
             <select className="input" value={siteFilter} onChange={e => setSiteFilter(e.target.value)}>
               <option value="All">All Sites</option>
@@ -340,7 +254,7 @@ export default function Data() {
             </select>
           </div>
           {(activeTab === 'cph' || activeTab === 'sla') && (
-            <div className="flex-1 min-w-[150px]">
+            <div className="w-full sm:w-auto sm:flex-1 min-w-[150px] max-w-[250px]">
               <label className="input-label">LOB</label>
               <select className="input" value={lobFilter} onChange={e => setLobFilter(e.target.value)}>
                 <option value="All">All LOBs</option>
@@ -349,16 +263,6 @@ export default function Data() {
               </select>
             </div>
           )}
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={handleApplyFilters}
-            disabled={isProcessing}
-            className="btn-primary"
-          >
-            {isProcessing ? <RefreshCw size={16} className="animate-spin" /> : <Filter size={16} />}
-            Process Data
-          </motion.button>
         </div>
       </motion.div>
 

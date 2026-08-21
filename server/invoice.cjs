@@ -149,7 +149,7 @@ const invoiceDataHandler = async (req, res) => {
                 let email = attData[row][sfUserIdx];
                 let lob = attData[row][cIdx];
                 if(email && lob) {
-                  let cleanEmail = email.toString().toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                  let cleanEmail = email.toString().toLowerCase().trim();
                   let cleanLob = lob.toString().trim();
                   if(cleanEmail && cleanLob && cleanLob !== '-') finalAtt[dt.iso][cleanEmail] = cleanLob;
                 }
@@ -231,7 +231,7 @@ const invoiceDataHandler = async (req, res) => {
               if(isMatch) {
                 let emailRaw = rsData[j][mIdx];
                 if (emailRaw) {
-                  let rsEmail = emailRaw.toString().toLowerCase().trim().split('@')[0].replace(/[^a-z0-9]/g, '');
+                  let rsEmail = emailRaw.toString().toLowerCase().trim();
                   if(rsEmail) {
                     finalReskills.push({
                       iso: dt.iso, 

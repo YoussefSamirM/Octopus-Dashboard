@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Calendar,
   PieChart as PieChartIcon,
+  Loader2
 } from "lucide-react";
 import { useInvoiceStore } from "../../stores/invoiceStore";
 export default function ICEmptyState() {
@@ -48,25 +49,25 @@ export default function ICEmptyState() {
     <div className="max-w-[1550px] mx-auto w-full animate-in fade-in duration-300">
       {" "}
       {error && (
-        <div className="bg-danger-50 dark:bg-danger-900/20 text-danger-600 dark:text-danger-400 p-4 rounded-lg flex items-center gap-3 border border-danger-200 dark:border-danger-800/30 mb-6 font-[700] text-[14px]">
+        <div className="bg-danger-50 dark:bg-danger-900/20 text-danger-600 dark:text-danger-400 p-4 rounded-md flex items-center gap-3 border border-danger-200 dark:border-danger-800/30 mb-6 font-semibold text-sm">
           {" "}
           <Bolt className="h-5 w-5" /> <span>{error}</span>{" "}
         </div>
       )}{" "}
       {/* Toolbar */}{" "}
-      <div className="bg-surface-0 border border-surface-200 rounded-[12px] p-6 mb-6 shadow-[0_4px_12px_rgba(0,0,0,0.02)]">
+      <div className="card p-6 mb-6">
         {" "}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {" "}
           {/* Status CSV */}{" "}
-          <div className="flex flex-col gap-[10px]">
+          <div className="flex flex-col gap-2">
             {" "}
-            <label className="text-[11px] font-[800] text-surface-500 uppercase tracking-[0.5px]">
+            <label className="text-xs font-semibold text-surface-500">
               1. Agent Status (CSV)
             </label>{" "}
             <button
               onClick={() => statusRef.current?.click()}
-              className={`flex items-center justify-center gap-[10px] h-[44px] px-5 border ${statusFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-dashed border-surface-200 bg-surface-0 text-surface-900 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-[8px] font-[700] text-[12px] transition-all truncate`}
+              className={`flex items-center justify-center gap-2 h-10 px-4 border ${statusFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-solid border-surface-200 bg-surface-50 text-surface-700 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-md font-medium text-sm transition-colors truncate`}
             >
               {" "}
               {statusFile ? (
@@ -87,14 +88,14 @@ export default function ICEmptyState() {
             />{" "}
           </div>{" "}
           {/* Master Excel */}{" "}
-          <div className="flex flex-col gap-[10px]">
+          <div className="flex flex-col gap-2">
             {" "}
-            <label className="text-[11px] font-[800] text-surface-500 uppercase tracking-[0.5px]">
+            <label className="text-xs font-semibold text-surface-500">
               2. Master Data (Excel)
             </label>{" "}
             <button
               onClick={() => reqRef.current?.click()}
-              className={`flex items-center justify-center gap-[10px] h-[44px] px-5 border ${reqFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-dashed border-surface-200 bg-surface-0 text-surface-900 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-[8px] font-[700] text-[12px] transition-all truncate`}
+              className={`flex items-center justify-center gap-2 h-10 px-4 border ${reqFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-solid border-surface-200 bg-surface-50 text-surface-700 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-md font-medium text-sm transition-colors truncate`}
             >
               {" "}
               {reqFile ? (
@@ -118,14 +119,14 @@ export default function ICEmptyState() {
             />{" "}
           </div>{" "}
           {/* Skills Matrix Excel */}{" "}
-          <div className="flex flex-col gap-[10px]">
+          <div className="flex flex-col gap-2">
             {" "}
-            <label className="text-[11px] font-[800] text-surface-500 uppercase tracking-[0.5px]">
+            <label className="text-xs font-semibold text-surface-500">
               3. Skills Matrix (Excel)
             </label>{" "}
             <button
               onClick={() => skillsRef.current?.click()}
-              className={`flex items-center justify-center gap-[10px] h-[44px] px-5 border ${skillsFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-dashed border-surface-200 bg-surface-0 text-surface-900 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-[8px] font-[700] text-[12px] transition-all truncate`}
+              className={`flex items-center justify-center gap-2 h-10 px-4 border ${skillsFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-solid border-surface-200 bg-surface-50 text-surface-700 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-md font-medium text-sm transition-colors truncate`}
             >
               {" "}
               {skillsFile ? (
@@ -149,14 +150,14 @@ export default function ICEmptyState() {
             />{" "}
           </div>{" "}
           {/* ABS Data Excel */}{" "}
-          <div className="flex flex-col gap-[10px]">
+          <div className="flex flex-col gap-2">
             {" "}
-            <label className="text-[11px] font-[800] text-surface-500 uppercase tracking-[0.5px]">
+            <label className="text-xs font-semibold text-surface-500">
               4. ABS Data (Excel)
             </label>{" "}
             <button
               onClick={() => absRef.current?.click()}
-              className={`flex items-center justify-center gap-[10px] h-[44px] px-5 border ${absFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-dashed border-surface-200 bg-surface-0 text-surface-900 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-[8px] font-[700] text-[12px] transition-all truncate`}
+              className={`flex items-center justify-center gap-2 h-10 px-4 border ${absFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-solid border-surface-200 bg-surface-50 text-surface-700 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-md font-medium text-sm transition-colors truncate`}
             >
               {" "}
               {absFile ? (
@@ -183,37 +184,37 @@ export default function ICEmptyState() {
         {/* Footer */}{" "}
         <div className="flex flex-wrap items-end justify-between pt-4 border-t border-surface-200 mt-2">
           {" "}
-          <div className="flex gap-[20px]">
+          <div className="flex flex-wrap gap-5">
             {" "}
-            <div className="flex flex-col gap-[10px]">
+            <div className="flex flex-col gap-2">
               {" "}
-              <label className="text-[11px] font-[800] text-surface-500 uppercase tracking-[0.5px]">
+              <label className="text-xs font-semibold text-surface-500">
                 Start Date
               </label>{" "}
-              <div className="flex items-center border border-surface-200 rounded-[8px] bg-surface-50 h-[44px] px-4 gap-[12px] focus-within:border-brand-600 focus-within:ring-4 focus-within:ring-brand-600/10 transition-all w-[170px]">
+              <div className="flex items-center border border-surface-200 rounded-md bg-surface-50 h-10 px-3 gap-2 focus-within:border-brand-600 focus-within:ring-1 focus-within:ring-brand-600 transition-all w-[160px]">
                 {" "}
-                <Calendar size={16} className="text-surface-900 " />{" "}
+                <Calendar size={16} className="text-surface-500" />{" "}
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="bg-transparent border-none text-[14px] font-[700] text-surface-900 outline-none w-full cursor-pointer"
+                  className="bg-transparent border-none text-sm font-medium text-surface-900 outline-none w-full cursor-pointer"
                 />{" "}
               </div>{" "}
             </div>{" "}
-            <div className="flex flex-col gap-[10px]">
+            <div className="flex flex-col gap-2">
               {" "}
-              <label className="text-[11px] font-[800] text-surface-500 uppercase tracking-[0.5px]">
+              <label className="text-xs font-semibold text-surface-500">
                 End Date (Optional)
               </label>{" "}
-              <div className="flex items-center border border-surface-200 rounded-[8px] bg-surface-50 h-[44px] px-4 gap-[12px] focus-within:border-brand-600 focus-within:ring-4 focus-within:ring-brand-600/10 transition-all w-[170px]">
+              <div className="flex items-center border border-surface-200 rounded-md bg-surface-50 h-10 px-3 gap-2 focus-within:border-brand-600 focus-within:ring-1 focus-within:ring-brand-600 transition-all w-[160px]">
                 {" "}
-                <Calendar size={16} className="text-surface-900 " />{" "}
+                <Calendar size={16} className="text-surface-500" />{" "}
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="bg-transparent border-none text-[14px] font-[700] text-surface-900 outline-none w-full cursor-pointer"
+                  className="bg-transparent border-none text-sm font-medium text-surface-900 outline-none w-full cursor-pointer"
                 />{" "}
               </div>{" "}
             </div>{" "}
@@ -221,11 +222,11 @@ export default function ICEmptyState() {
           <button
             onClick={handleProcess}
             disabled={isLoading}
-            className="h-[44px] px-[32px] bg-brand-600 hover:bg-brand-700 dark:hover:bg-brand-500 text-white rounded-[8px] font-[700] text-[14px] flex items-center gap-[10px] shadow-[0_4px_12px_rgba(37,99,235,0.25)] hover:-translate-y-[2px] hover:shadow-[0_6px_16px_rgba(37,99,235,0.3)] transition-all disabled:opacity-50 mt-4 md:mt-0"
+            className="btn-primary h-10 mt-4 md:mt-0"
           >
             {" "}
             {isLoading ? (
-              <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Bolt size={16} />
             )}{" "}
@@ -233,13 +234,13 @@ export default function ICEmptyState() {
           </button>{" "}
         </div>{" "}
       </div>{" "}
-      <div className="text-center py-[60px] px-[20px]">
+      <div className="text-center py-16 px-5">
         {" "}
-        <PieChartIcon className="w-[64px] h-[64px] text-surface-200 mx-auto mb-[24px]" />{" "}
-        <h3 className="text-[24px] font-[900] text-surface-900 mb-[12px]">
+        <PieChartIcon className="w-16 h-16 text-surface-200 mx-auto mb-6" />{" "}
+        <h3 className="text-2xl font-semibold text-surface-900 mb-3">
           Data Center Ready
         </h3>{" "}
-        <p className="text-[15px] text-surface-500 max-w-[600px] mx-auto leading-[1.6]">
+        <p className="text-sm text-surface-500 max-w-[600px] mx-auto leading-relaxed">
           {" "}
           Upload the required files locally. The engine validates dropped
           intervals strictly and calculates metrics precisely.{" "}

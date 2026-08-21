@@ -1,5 +1,7 @@
 import { useInvoiceStore } from "../../stores/invoiceStore";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Activity, Clock, CheckCircle } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+
 interface ICLobDaysViewProps {
   lobId: string;
   onSelectDate: (date: string) => void;
@@ -38,54 +40,97 @@ export default function ICLobDaysView({
     tLost = 0,
     tHc = 0,
     tAbs = 0;
+
+  const chartData = sortedDates.map(dIso => {
+    const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
+    if (!d) return null;
+    
+    // For cumulative totals
+    if (d.req > 0 || d.act > 0 || d.sch > 0) {
+      tReq += d.req;
+      tAct += d.act;
+      tBill += d.bill;
+      tOver += d.over;
+      tLost += d.lost;
+      tHc += d.sch;
+      tAbs += d.abs;
+    }
+    
+    return {
+      date: dIso.slice(5), // MM-DD
+      req: d.req,
+      act: d.act
+    };
+  }).filter(Boolean);
+
+  // We need to recount tReq, tAct etc for the Details view loop, so we should reset them
+  // Actually, wait, let's just use the totals we just calculated for the Details view summary row as well.
+  // The Details view does its own loop, so we should reset them if we want the Details view to calculate it again,
+  // OR we just remove the calculation from the Details view loop. Let's just reset them for safety.
+  tReq = 0; tAct = 0; tBill = 0; tOver = 0; tLost = 0; tHc = 0; tAbs = 0;
+
+  // Let's recalculate for Overview since the chartData loop resets them below anyway
+  chartData.forEach((d: any) => {
+    const orig = globalProcessedData[`2024-${d.date}`] || globalProcessedData[`2023-${d.date}`]; // just a hack
+  });
+  
+  // A cleaner approach: calculate totals once.
+  let overviewReq = 0, overviewAct = 0, overviewBill = 0;
+  sortedDates.forEach(dIso => {
+    const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
+    if (d && (d.req > 0 || d.act > 0 || d.sch > 0)) {
+      overviewReq += d.req;
+      overviewAct += d.act;
+      overviewBill += d.bill;
+    }
+  });
+
   return (
     <div className="max-w-[1550px] mx-auto w-full animate-in fade-in duration-300">
       {" "}
-      <h2 className="text-[24px] font-[900] text-surface-900 mb-[24px]">
-        {lobConf.title} Daily Breakdown
+      <h2 className="text-2xl font-semibold text-surface-900 mb-6">
+        {lobConf.title} Breakdown
       </h2>{" "}
-      <div className="bg-surface-0 border border-surface-200 rounded-[12px] overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.02)] overflow-x-auto mb-[32px]">
-        {" "}
-        <table className="w-full border-collapse text-left whitespace-nowrap">
-          {" "}
-          <thead>
-            {" "}
+      <div className="card overflow-hidden mb-8 w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="min-w-full inline-block align-middle">
+          <table className="min-w-full border-collapse text-left whitespace-nowrap">
+            <thead>
             <tr>
               {" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 Date
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 REQ
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 Actual
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 ABS %
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 ABS Hours
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 SCH %
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 Billable
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 IC %
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 Shortage
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 Overage
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 Overage %
               </th>{" "}
-              <th className="bg-surface-50 font-[800] text-[11px] text-surface-500 uppercase tracking-[0.5px] px-[16px] py-[14px] border-b border-surface-200 ">
+              <th className="bg-surface-50 font-semibold text-xs text-surface-500 px-4 py-3 border-b border-surface-200">
                 Action
               </th>{" "}
             </tr>{" "}
@@ -103,8 +148,7 @@ export default function ICLobDaysView({
                 tHc += d.sch;
                 tAbs += d.abs;
                 let schHrs = d.sch * 0.89;
-                /* Prod SCH */ let schPerc =
-                  d.req > 0 ? (schHrs / d.req) * 100 : 0;
+                let schPerc = d.req > 0 ? (schHrs / d.req) * 100 : 0;
                 let ic = d.req === 0 ? 100 : (d.bill / d.req) * 100;
                 let ovPerc = d.req > 0 ? (d.over / d.req) * 100 : 0;
                 let absPerc = d.sch > 0 ? (d.abs / d.sch) * 100 : 0;
@@ -114,46 +158,46 @@ export default function ICLobDaysView({
                     className="hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors"
                   >
                     {" "}
-                    <td className="px-[16px] py-[14px] font-[700] text-[13px] border-b border-surface-200 text-surface-900 ">
+                    <td className="px-4 py-3 font-semibold text-sm border-b border-surface-200 text-surface-900">
                       {dIso}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[700] text-[13px] bg-surface-50 border-b border-surface-200 font-mono text-surface-900 ">
+                    <td className="px-4 py-3 font-semibold text-sm bg-surface-50 border-b border-surface-200 tabular-nums text-surface-900">
                       {formatTimeSecs(d.req)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[700] text-[13px] border-b border-surface-200 font-mono text-surface-900 ">
+                    <td className="px-4 py-3 font-semibold text-sm border-b border-surface-200 tabular-nums text-surface-900">
                       {formatTimeSecs(d.act)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[800] text-[13px] text-danger-600 dark:text-danger-400 border-b border-surface-200 font-mono">
+                    <td className="px-4 py-3 font-semibold text-sm text-danger-600 dark:text-danger-400 border-b border-surface-200 tabular-nums">
                       {formatPerc(absPerc)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[800] text-[13px] text-danger-600 dark:text-danger-400 border-b border-surface-200 font-mono">
+                    <td className="px-4 py-3 font-semibold text-sm text-danger-600 dark:text-danger-400 border-b border-surface-200 tabular-nums">
                       {formatTimeSecs(d.abs)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[700] text-[13px] text-surface-500 border-b border-surface-200 font-mono">
+                    <td className="px-4 py-3 font-semibold text-sm text-surface-500 border-b border-surface-200 tabular-nums">
                       {formatPerc(schPerc)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[800] text-[13px] text-brand-600 dark:text-brand-400 border-b border-surface-200 font-mono">
+                    <td className="px-4 py-3 font-semibold text-sm text-brand-600 dark:text-brand-400 border-b border-surface-200 tabular-nums">
                       {formatTimeSecs(d.bill)}
                     </td>{" "}
                     <td
-                      className={`px-[16px] py-[14px] font-[800] text-[13px] ${ic >= 100 ? "text-success-600 dark:text-success-400" : "text-danger-600 dark:text-danger-400"} border-b border-surface-200 font-mono`}
+                      className={`px-4 py-3 font-semibold text-sm ${ic >= 100 ? "text-success-600 dark:text-success-400" : "text-danger-600 dark:text-danger-400"} border-b border-surface-200 tabular-nums`}
                     >
                       {formatPerc(ic)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[800] text-[13px] text-danger-600 dark:text-danger-400 border-b border-surface-200 font-mono">
+                    <td className="px-4 py-3 font-semibold text-sm text-danger-600 dark:text-danger-400 border-b border-surface-200 tabular-nums">
                       {formatTimeSecs(d.lost)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[800] text-[13px] text-success-600 dark:text-success-400 border-b border-surface-200 font-mono">
+                    <td className="px-4 py-3 font-semibold text-sm text-success-600 dark:text-success-400 border-b border-surface-200 tabular-nums">
                       {formatTimeSecs(d.over)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] font-[800] text-[13px] text-success-600 dark:text-success-400 border-b border-surface-200 font-mono">
+                    <td className="px-4 py-3 font-semibold text-sm text-success-600 dark:text-success-400 border-b border-surface-200 tabular-nums">
                       {formatPerc(ovPerc)}
                     </td>{" "}
-                    <td className="px-[16px] py-[14px] border-b border-surface-200 ">
+                    <td className="px-4 py-3 border-b border-surface-200">
                       {" "}
                       <button
                         onClick={() => onSelectDate(dIso)}
-                        className="inline-flex items-center gap-[8px] text-brand-600 font-[700] bg-[#eff6ff] dark:bg-brand-900/30 border border-[#bfdbfe] dark:border-brand-700/50 px-[16px] py-[8px] rounded-[6px] transition-all hover:bg-brand-600 hover:text-white hover:border-brand-600 text-[13px]"
+                        className="inline-flex items-center gap-2 text-brand-600 font-semibold bg-[#eff6ff] dark:bg-brand-900/30 border border-[#bfdbfe] dark:border-brand-700/50 px-4 py-2 rounded-md transition-all hover:bg-brand-600 hover:text-white hover:border-brand-600 text-sm"
                       >
                         {" "}
                         Intervals <ArrowRight size={14} />{" "}
@@ -163,7 +207,7 @@ export default function ICLobDaysView({
                 );
               }
               return null;
-            })}{" "}
+            })}
             {/* Total Row */}{" "}
             {(() => {
               let netOver = 0,
@@ -181,50 +225,51 @@ export default function ICLobDaysView({
               let tOvPerc = tReq > 0 ? (netOver / tReq) * 100 : 0;
               let mIc = tReq === 0 ? 100 : (tBill / tReq) * 100;
               return (
-                <tr className="bg-surface-100 font-[800] border-t-2 border-surface-300 ">
+                <tr className="bg-surface-100 font-semibold border-t-2 border-surface-300">
                   {" "}
-                  <td className="px-[16px] py-[14px] text-[13px] text-surface-900 ">
+                  <td className="px-4 py-3 text-sm text-surface-900">
                     Total
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] bg-surface-50 font-mono text-surface-900 ">
+                  <td className="px-4 py-3 text-sm bg-surface-50 tabular-nums text-surface-900">
                     {formatTimeSecs(tReq)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] font-mono text-surface-900 ">
+                  <td className="px-4 py-3 text-sm tabular-nums text-surface-900">
                     {formatTimeSecs(tAct)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] text-danger-600 dark:text-danger-400 font-mono">
+                  <td className="px-4 py-3 text-sm text-danger-600 dark:text-danger-400 tabular-nums">
                     {formatPerc(tAbsPerc)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] text-danger-600 dark:text-danger-400 font-mono">
+                  <td className="px-4 py-3 text-sm text-danger-600 dark:text-danger-400 tabular-nums">
                     {formatTimeSecs(tAbs)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] text-surface-500 font-mono">
+                  <td className="px-4 py-3 text-sm text-surface-500 tabular-nums">
                     {formatPerc(tSchPerc)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] text-brand-600 dark:text-brand-400 font-mono">
+                  <td className="px-4 py-3 text-sm text-brand-600 dark:text-brand-400 tabular-nums">
                     {formatTimeSecs(tBill)}
                   </td>{" "}
                   <td
-                    className={`px-[16px] py-[14px] text-[13px] ${mIc >= 100 ? "text-success-600 dark:text-success-400" : "text-danger-600 dark:text-danger-400"} font-mono`}
+                    className={`px-4 py-3 text-sm ${mIc >= 100 ? "text-success-600 dark:text-success-400" : "text-danger-600 dark:text-danger-400"} tabular-nums`}
                   >
                     {formatPerc(mIc)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] text-danger-600 dark:text-danger-400 font-mono">
+                  <td className="px-4 py-3 text-sm text-danger-600 dark:text-danger-400 tabular-nums">
                     {formatTimeSecs(netLost)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] text-success-600 dark:text-success-400 font-mono">
+                  <td className="px-4 py-3 text-sm text-success-600 dark:text-success-400 tabular-nums">
                     {formatTimeSecs(netOver)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px] text-success-600 dark:text-success-400 font-mono">
+                  <td className="px-4 py-3 text-sm text-success-600 dark:text-success-400 tabular-nums">
                     {formatPerc(tOvPerc)}
                   </td>{" "}
-                  <td className="px-[16px] py-[14px] text-[13px]">-</td>{" "}
+                  <td className="px-4 py-3 text-sm">-</td>{" "}
                 </tr>
               );
             })()}{" "}
-          </tbody>{" "}
-        </table>{" "}
-      </div>{" "}
+          </tbody>
+        </table>
+        </div>
+      </div>
     </div>
   );
 }

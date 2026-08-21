@@ -1,4 +1,4 @@
-// Octopus Dashboard — Sidebar Navigation
+// Octopus Dashboard - Sidebar Navigation
 import { motion } from 'framer-motion';
 import {
   Home,
@@ -39,27 +39,27 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    title: 'OVERVIEW',
+    title: 'GENERAL',
     items: [
       { id: 'dashboard', label: 'Home', icon: 'home' },
     ],
   },
   {
-    title: 'STAFFING',
+    title: 'TALABAT WFM',
     items: [
       { id: 'data', label: 'Data', icon: 'line-chart' },
       { id: 'reports', label: 'Reports', icon: 'bar-chart-2' },
     ],
   },
   {
-    title: 'OPERATIONS',
+    title: 'OCTOPUS & INVOICING',
     items: [
       { id: 'ic-view', label: 'Talabat Invoice', icon: 'receipt' },
       { id: 'brightskies', label: 'Octopus Overview', icon: 'network' },
     ],
   },
   {
-    title: 'ADMIN',
+    title: 'ADMINISTRATION',
     items: [
       { id: 'admin-upload', label: 'Data Admin', icon: 'upload' },
     ],
@@ -76,13 +76,26 @@ export default function Sidebar() {
   const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
 
   return (
-    <motion.aside
-      className="h-screen flex flex-col flex-shrink-0 bg-[#10104a] dark:bg-surface-0 border-r border-white/10 dark:border-surface-100 z-30 transition-colors"
-      animate={{ width: collapsed ? 64 : 240 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
-    >
-      {/* Header */}
-      <div className={`flex items-center h-16 border-b border-white/10 dark:border-surface-100 flex-shrink-0 transition-colors ${collapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
+    <>
+      {/* Mobile Overlay */}
+      <div 
+        className={`md:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        onClick={toggleSidebar}
+      />
+
+      <motion.aside
+        className={`fixed md:relative h-screen flex flex-col flex-shrink-0 bg-[#10104a] dark:bg-surface-0 border-r border-white/10 dark:border-surface-100 z-50 transition-transform duration-300 md:transition-none overflow-hidden ${collapsed ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}`}
+        initial={false}
+        animate={{ width: collapsed ? 64 : 240 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+      >
+        <style>{`
+          @media (max-width: 767px) {
+            aside { width: 240px !important; }
+          }
+        `}</style>
+        {/* Header */}
+        <div className={`flex items-center h-16 border-b border-white/10 dark:border-surface-100 flex-shrink-0 transition-colors ${collapsed ? 'justify-center px-0 hidden md:flex' : 'justify-between px-4'}`}>
         {!collapsed && (
           <div className="flex items-center">
             <img src="/octopus-logo.png" alt="Octopus" className="h-8 w-auto object-contain brightness-0 invert" />
@@ -109,7 +122,7 @@ export default function Sidebar() {
         {navSections.map((section) => (
           <div key={section.title} className="mb-3">
             {!collapsed && (
-              <p className="text-2xs font-medium text-brand-400/60 uppercase tracking-wider px-3 mb-1">
+              <p className="text-2xs font-medium text-brand-400/60 px-3 mb-1">
                 {section.title}
               </p>
             )}
@@ -155,5 +168,6 @@ export default function Sidebar() {
         </button>
       </div>
     </motion.aside>
+    </>
   );
 }
