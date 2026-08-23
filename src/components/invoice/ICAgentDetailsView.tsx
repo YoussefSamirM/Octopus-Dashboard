@@ -222,24 +222,24 @@ export default function ICAgentDetailsView({
       <div className="card shadow-sm overflow-hidden mb-10">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left whitespace-nowrap">
-            <thead>
+            <thead className="glass-header">
               <tr>
-                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+                <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
                   HR ID
                 </th>
-                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+                <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
                   Name
                 </th>
-                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+                <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
                   Email
                 </th>
-                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+                <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
                   TL
                 </th>
-                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+                <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
                   SV
                 </th>
-                <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200 text-right">
+                <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200 text-right">
                   Duration
                 </th>
               </tr>
@@ -259,23 +259,32 @@ export default function ICAgentDetailsView({
                     key={a.email}
                     className="hover:bg-brand-50/30 transition-colors group"
                   >
-                    <td className="px-6 py-4 text-sm text-surface-600 font-medium">
+                    <td className="px-3 py-3 font-semibold text-[13px] text-surface-600">
                       {a.hr}
                     </td>
-                    <td className="px-6 py-4 text-sm text-surface-900 font-semibold group-hover:text-brand-700 transition-colors">
-                      {a.name}
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs">
+                          {a.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-semibold text-[13px] text-surface-900 group-hover:text-brand-600 transition-colors">
+                          {a.name}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-surface-600 font-medium">
+                    <td className="px-3 py-3 text-[13px] text-surface-500">
                       {a.email}
                     </td>
-                    <td className="px-6 py-4 text-sm text-surface-700 font-medium">
+                    <td className="px-3 py-3 font-semibold text-[13px] text-surface-700">
                       {a.tl}
                     </td>
-                    <td className="px-6 py-4 text-sm text-surface-700 font-medium">
+                    <td className="px-3 py-3 font-semibold text-[13px] text-surface-700">
                       {a.osv}
                     </td>
-                    <td className="px-6 py-4 text-right font-semibold text-sm text-surface-900">
-                      {formatTimeFromMs(a.durMs)}
+                    <td className="px-3 py-3 text-right">
+                      <span className="font-semibold text-[13px] text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-md">
+                        {formatTimeFromMs(a.durMs)}
+                      </span>
                     </td>
                   </tr>
                 ))

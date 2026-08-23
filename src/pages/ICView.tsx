@@ -145,12 +145,32 @@ export default function ICView() {
       </div>{" "}
       <div className="flex-1 flex flex-col relative w-full items-center justify-center">
         {!hasData ? (
-          isLoading ? (
-             <div className="flex flex-col items-center justify-center gap-4 text-surface-400 mt-20">
-               <span className="h-8 w-8 border-4 border-surface-200 border-t-brand-500 rounded-full animate-spin" />
-               <p className="font-medium text-[15px]">Loading central data...</p>
+           isLoading ? (
+             <div className="w-full">
+               <div className="h-10 w-48 bg-surface-200 rounded-md animate-pulse mb-8" />
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                 {[1, 2, 3, 4].map(i => (
+                   <div key={i} className="card p-6 h-[200px] flex flex-col justify-between">
+                     <div className="h-6 w-32 bg-surface-200 rounded-md animate-pulse" />
+                     <div className="space-y-3">
+                       <div className="flex justify-between">
+                         <div className="h-4 w-12 bg-surface-100 rounded animate-pulse" />
+                         <div className="h-4 w-20 bg-surface-200 rounded animate-pulse" />
+                       </div>
+                       <div className="flex justify-between">
+                         <div className="h-4 w-16 bg-surface-100 rounded animate-pulse" />
+                         <div className="h-4 w-20 bg-surface-200 rounded animate-pulse" />
+                       </div>
+                       <div className="flex justify-between pt-3 border-t border-surface-100">
+                         <div className="h-4 w-12 bg-surface-100 rounded animate-pulse" />
+                         <div className="h-4 w-16 bg-surface-200 rounded animate-pulse" />
+                       </div>
+                     </div>
+                   </div>
+                 ))}
+               </div>
              </div>
-          ) : (
+           ) : (
             <div className="flex flex-col items-center justify-center text-center mt-20">
               <Receipt className="text-surface-300 w-16 h-16 mb-4" />
               <h3 className="text-[20px] font-semibold text-surface-900 mb-2">No Data Available</h3>

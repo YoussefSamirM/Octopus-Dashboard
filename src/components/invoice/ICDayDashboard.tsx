@@ -56,21 +56,21 @@ export default function ICDayDashboard({
       {viewMode === 'overview' ? (
       <div className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="card p-6 border-l-4" style={{ borderLeftColor: '#64748b' }}>
+          <div className="card p-6 border-l-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300" style={{ borderLeftColor: '#64748b' }}>
             <div className="flex items-center gap-3 mb-2">
               <Clock className="text-surface-400" size={20} />
               <h3 className="text-sm font-semibold text-surface-500">Total Required</h3>
             </div>
             <p className="text-3xl font-bold text-surface-900">{formatTimeSecs(lobData.req)}</p>
           </div>
-          <div className="card p-6 border-l-4" style={{ borderLeftColor: '#3b82f6' }}>
+          <div className="card p-6 border-l-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300" style={{ borderLeftColor: '#3b82f6' }}>
             <div className="flex items-center gap-3 mb-2">
               <Activity className="text-surface-400" size={20} />
               <h3 className="text-sm font-semibold text-surface-500">Total Actual</h3>
             </div>
             <p className="text-3xl font-bold text-surface-900">{formatTimeSecs(lobData.act)}</p>
           </div>
-          <div className="card p-6">
+          <div className="card p-6 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
             <div className="flex items-center gap-3 mb-2">
               <CheckCircle className="text-brand-500" size={20} />
               <h3 className="text-sm font-semibold text-surface-500">Day IC%</h3>
@@ -100,7 +100,7 @@ export default function ICDayDashboard({
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} width={80} 
                      tickFormatter={(val) => Math.round(val / 3600) + 'h'} />
               <Tooltip 
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(4px)' }}
                 formatter={(value: number) => formatTimeSecs(value)}
                 labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '8px' }}
               />
@@ -114,27 +114,27 @@ export default function ICDayDashboard({
       <div className="card overflow-hidden shadow-sm mb-10 w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
         <div className="min-w-full inline-block align-middle">
           <table className="min-w-full border-collapse text-left whitespace-nowrap">
-          <thead>
+          <thead className="glass-header">
             <tr>
-              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
-                Time Interval
+              <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
+                Time
               </th>
-              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
-                Required
+              <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
+                REQ
               </th>
-              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+              <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
                 Actual
               </th>
-              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+              <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
                 Billable
               </th>
-              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200 text-center">
+              <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200 text-center">
                 IC %
               </th>
-              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+              <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
                 O/U
               </th>
-              <th className="bg-surface-50/80 font-semibold text-xs text-surface-500 px-6 py-4 border-b border-surface-200">
+              <th className="font-semibold text-xs text-surface-500 px-3 py-3 border-b border-surface-200">
               </th>
             </tr>
           </thead>
@@ -156,26 +156,26 @@ export default function ICDayDashboard({
                       key={i}
                       className="hover:bg-brand-50/30 transition-colors group"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3">
                         <span className="font-semibold text-sm text-surface-900">
                           {intObj.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-sm text-surface-600">
+                      <td className="px-3 py-3 font-semibold text-sm text-surface-600">
                         {formatTimeSecs(intObj.req)}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-sm text-surface-900">
+                      <td className="px-3 py-3 font-semibold text-sm text-surface-900">
                         {formatTimeSecs(intObj.act)}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-sm text-surface-900">
+                      <td className="px-3 py-3 font-semibold text-sm text-surface-900">
                         {formatTimeSecs(intObj.bill)}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 py-3 text-center">
                         <span className={`text-sm font-semibold ${isPass ? 'text-success-600' : 'text-danger-600'}`}>
                           {formatPerc(ic)}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3">
                         <div className="flex flex-col gap-1">
                           {intObj.lost > 0 && (
                             <span className="text-xs font-semibold text-danger-600">
@@ -192,7 +192,7 @@ export default function ICDayDashboard({
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 py-3 text-right">
                         <button
                           onClick={() => onViewAgentDetails(intObj.sk)}
                           className="inline-flex items-center justify-center w-8 h-8 rounded-md text-surface-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"

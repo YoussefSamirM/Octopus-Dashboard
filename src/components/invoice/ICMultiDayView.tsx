@@ -80,7 +80,7 @@ export default function ICMultiDayView({ onSelectLob }: ICMultiDayViewProps) {
               <div
                 key={lob.id}
                 onClick={() => onSelectLob(lob.id)}
-                className="card p-6 cursor-pointer group"
+                className="card p-6 cursor-pointer group hover:-translate-y-1 hover:shadow-md transition-all duration-300"
               >
                 {" "}
                 <h3 className="text-xl font-semibold mb-5 text-surface-900 flex justify-between items-center">

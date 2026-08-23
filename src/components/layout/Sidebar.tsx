@@ -166,6 +166,16 @@ export default function Sidebar() {
           <Settings className="nav-icon" size={18} />
           {!collapsed && <span>Settings</span>}
         </button>
+
+        {/* Creator Signature */}
+        <div className={`mt-4 mb-2 mx-2 pt-4 border-t border-white/10 flex flex-col items-center justify-center transition-all duration-300 ${collapsed ? 'opacity-0 h-0 overflow-hidden hidden' : 'opacity-100'}`}>
+          <span className="text-[10px] text-brand-300 font-medium uppercase tracking-widest mb-1 opacity-80">
+            Designed & Developed By
+          </span>
+          <span className="text-[14px] text-white font-bold tracking-tight">
+            Yousef Samir
+          </span>
+        </div>
       </div>
     </motion.aside>
     </>
