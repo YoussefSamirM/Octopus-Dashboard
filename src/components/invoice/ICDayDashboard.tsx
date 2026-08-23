@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useInvoiceStore } from "../../stores/invoiceStore";
 import { Users, Calendar, Target, Clock, CheckCircle, XCircle, TrendingDown, TrendingUp, ChevronRight, Activity } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 interface ICDayDashboardProps {
   iso: string;
@@ -38,6 +38,61 @@ export default function ICDayDashboard({
     return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
   const formatPerc = (val: number) => (val || 0).toFixed(2) + "%";
+
+  const avgReq = lobData.intervals.length > 0 ? (lobData.req / lobData.intervals.length) : 0;
+  const avgAct = lobData.intervals.length > 0 ? (lobData.act / lobData.intervals.length) : 0;
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const req = payload.find((p: any) => p.dataKey === 'req')?.value || 0;
+      const act = payload.find((p: any) => p.dataKey === 'act')?.value || 0;
+      const variance = act - req;
+      const isOver = variance > 0;
+      const isShort = variance < 0;
+      
+      const intObj = payload[0].payload;
+      const icPerc = intObj.req === 0 ? 100 : (intObj.bill / intObj.req) * 100;
+      
+      return (
+        <div className="bg-surface-0/95 dark:bg-surface-800/95 backdrop-blur-md p-4 rounded-xl border border-surface-200 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+          <p className="text-sm font-bold text-surface-900 dark:text-white mb-3 border-b border-surface-100 dark:border-white/10 pb-2">{label}</p>
+          <div className="flex flex-col gap-2 text-[13px]">
+            <div className="flex justify-between items-center gap-6">
+              <span className="text-surface-500 font-medium flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#94a3b8]"></div>Required
+              </span>
+              <span className="font-semibold text-surface-900 dark:text-white">{formatTimeSecs(req)}</span>
+            </div>
+            <div className="flex justify-between items-center gap-6">
+              <span className="text-surface-500 font-medium flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#3b82f6]"></div>Actual
+              </span>
+              <span className="font-semibold text-surface-900 dark:text-white">{formatTimeSecs(act)}</span>
+            </div>
+            
+            <div className="h-px bg-surface-100 dark:bg-white/10 my-1"></div>
+            
+            <div className="flex justify-between items-center gap-6">
+              <span className="text-surface-500 font-medium">
+                {isOver ? 'Overage' : isShort ? 'Shortage' : 'Variance'}
+              </span>
+              <span className={`font-semibold ${isOver ? 'text-success-500' : isShort ? 'text-danger-500' : 'text-surface-500'}`}>
+                {isOver ? '+' : isShort ? '-' : ''} {formatTimeSecs(Math.abs(variance))}
+              </span>
+            </div>
+            <div className="flex justify-between items-center gap-6">
+              <span className="text-surface-500 font-medium">IC %</span>
+              <span className={`font-bold ${icPerc >= 100 ? 'text-success-500' : 'text-danger-500'}`}>
+                {icPerc.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="max-w-[1550px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-[32px] gap-4">
@@ -87,25 +142,51 @@ export default function ICDayDashboard({
             <AreaChart data={lobData.intervals} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorReqIntraday" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.4}/>
+                  <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.5}/>
                   <stop offset="95%" stopColor="#94a3b8" stopOpacity={0}/>
                 </linearGradient>
                 <linearGradient id="colorActIntraday" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.5}/>
                   <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <CartesianGrid vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
               <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} dy={10} interval="preserveStartEnd" minTickGap={30} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} width={80} 
                      tickFormatter={(val) => Math.round(val / 3600) + 'h'} />
-              <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(4px)' }}
-                formatter={(value: number) => formatTimeSecs(value)}
-                labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '8px' }}
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} />
+              
+              <ReferenceLine y={avgReq} stroke="#94a3b8" strokeDasharray="3 3" strokeOpacity={0.6} />
+              <ReferenceLine y={avgAct} stroke="#3b82f6" strokeDasharray="3 3" strokeOpacity={0.6} />
+              
+              <Area 
+                type="monotone" 
+                dataKey="req" 
+                name="Required" 
+                stroke="#94a3b8" 
+                strokeWidth={3} 
+                fillOpacity={1} 
+                fill="url(#colorReqIntraday)" 
+                dot={false} 
+                activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} 
+                isAnimationActive={true}
+                animationDuration={1500}
+                animationEasing="ease-in-out"
               />
-              <Area type="monotone" dataKey="req" name="Required" stroke="#94a3b8" strokeWidth={3} fillOpacity={1} fill="url(#colorReqIntraday)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-              <Area type="monotone" dataKey="act" name="Actual" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorActIntraday)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+              <Area 
+                type="monotone" 
+                dataKey="act" 
+                name="Actual" 
+                stroke="#3b82f6" 
+                strokeWidth={3} 
+                fillOpacity={1} 
+                fill="url(#colorActIntraday)" 
+                dot={false} 
+                activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} 
+                isAnimationActive={true}
+                animationDuration={1500}
+                animationEasing="ease-in-out"
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
