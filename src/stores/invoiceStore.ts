@@ -219,11 +219,43 @@ export const useInvoiceStore = create<InvoiceState>()(
       loadFromServer: async () => {
         set({ isLoading: true, error: null });
         try {
-           const { data, error: downloadError } = await supabase.storage.from('uploads').download('invoice_data.json');
-           if (downloadError || !data) {
-             set({ isLoading: false });
+           // Use download with transform options to bypass cache, or getPublicUrl if public
+           const { data, error: downloadError } = await supabase.storage
+             .from('uploads')
+             .download('invoice_data.json', {
+               transform: {
+                 quality: 100 // dummy transform parameter to try and bust cache if supported
+               }
+             });
+             
+           if (downloadError) {
+             console.error("Supabase download error:", downloadError);
+             // fallback to public url fetch with cache busting
+             const { data: pubData } = supabase.storage.from('uploads').getPublicUrl('invoice_data.json');
+             if (pubData && pubData.publicUrl) {
+                const res = await fetch(`${pubData.publicUrl}?t=${new Date().getTime()}`);
+                if (res.ok) {
+                  const text = await res.text();
+                  const parsed = JSON.parse(text);
+                  set({ 
+                    globalProcessedData: parsed.globalProcessedData || {},
+                    sortedDates: parsed.sortedDates || [],
+                    agentInfo: parsed.agentInfo || {},
+                    rawStatusParsed: parsed.rawStatusParsed || [],
+                    isLoading: false 
+                  });
+                  return;
+                }
+             }
+             set({ error: downloadError.message, isLoading: false });
              return;
            }
+           
+           if (!data) {
+             set({ error: "No data received from server", isLoading: false });
+             return;
+           }
+           
            const text = await data.text();
            const parsed = JSON.parse(text);
            
@@ -235,8 +267,8 @@ export const useInvoiceStore = create<InvoiceState>()(
              isLoading: false 
            });
         } catch (e: any) {
-           console.error(e);
-           set({ error: e.message, isLoading: false });
+           console.error("loadFromServer exception:", e);
+           set({ error: e.message || "Failed to load data from server", isLoading: false });
         }
       },
 
@@ -603,9 +635,6 @@ export const useInvoiceStore = create<InvoiceState>()(
 {
   name: 'octopus-invoice-storage',
   partialize: (state) => ({ 
-    globalProcessedData: state.globalProcessedData, 
-    sortedDates: state.sortedDates, 
-    agentInfo: state.agentInfo, 
     currentShiftMode: state.currentShiftMode,
     navState: state.navState
   }),
