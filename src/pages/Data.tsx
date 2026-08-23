@@ -654,18 +654,12 @@ export default function Data() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94 }}
             transition={{ duration: 0.35 }}
-            className="card p-16 flex flex-col items-center justify-center text-center"
+            className="w-full h-full min-h-[400px] flex flex-col items-center justify-center text-center mt-10"
           >
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-              className="w-20 h-20 bg-gradient-to-br from-brand-100 to-indigo-100 rounded-2xl flex items-center justify-center mb-5 shadow-lg"
-            >
-              <BarChart2 className="text-brand-500" size={36} />
-            </motion.div>
-            <h3 className="text-lg font-semibold text-surface-800 dark:text-surface-200 mb-2">No Data Processed Yet</h3>
-            <p className="text-sm text-surface-500 max-w-md">
-              Connect your Google Sheet directory, upload your Chats Log and Agent Status files, then click <strong>Process Data</strong> to see charts and metrics.
+            <BarChart2 className="text-surface-300 dark:text-surface-400 w-16 h-16 mb-4" />
+            <h3 className="text-[20px] font-semibold text-surface-900 mb-2">No Data Available</h3>
+            <p className="text-[15px] text-surface-500 max-w-md">
+              The CPH & AHT dashboard is empty. Please wait for an Admin to upload and sync the required data from the <strong>Data Admin</strong> page.
             </p>
           </motion.div>
         )}
