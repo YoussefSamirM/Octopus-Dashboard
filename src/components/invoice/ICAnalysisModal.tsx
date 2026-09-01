@@ -333,173 +333,6 @@ export default function ICAnalysisModal({
                   Down Interval Root Cause Analysis
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-danger-100 dark:bg-danger-900/40 text-danger-700 dark:text-danger-300 border border-danger-200 dark:border-danger-800/60 ">
-    if (!ms || isNaN(ms)) {
-      return `${fallbackIso}, ${Math.floor(fallbackSk / 60)}:${(fallbackSk % 60 === 0 ? '00' : '30')}`;
-    }
-    const d = new Date(ms);
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const day = d.getDate();
-    const month = months[d.getMonth()];
-    const year = d.getFullYear();
-    const h = String(d.getHours()).padStart(2, "0");
-    const m = String(d.getMinutes()).padStart(2, "0");
-    const s = String(d.getSeconds()).padStart(2, "0");
-    return `${day} ${month}, ${year}, ${h}:${m}:${s}`;
-  };
-
-  const totalOOQSecs = ooqUnacts.reduce((sum: number, u: any) => sum + (u.durSecs || 0), 0);
-  const totalUNBreaksSecs = unBreaksUnacts.reduce((sum: number, u: any) => sum + (u.durSecs || 0), 0);
-  const totalLateBreaksSecs = lateBreaksUnacts.reduce((sum: number, u: any) => sum + (u.durSecs || 0), 0);
-  const totalUnavailSecs = unavailUnacts.reduce((sum: number, u: any) => sum + (u.durSecs || 0), 0);
-  const totalAllLostSecs = totalOOQSecs + totalUNBreaksSecs + totalLateBreaksSecs + totalUnavailSecs;
-  
-  const lobTitle = LOBs.find((l) => l.id === lobId)?.title || lobId;
-  const shortageSecs = Math.max(0, intObj.req - intObj.bill);
-
-  // Copy Markdown Summary
-  const handleCopySummary = () => {
-    let md = `### Down Interval Analysis: ${lobTitle} (${intObj.label} - ${iso})\n`;
-    md += `- **Requirement:** ${formatDur(intObj.req)}\n`;
-    md += `- **Actual Logged:** ${formatDur(intObj.act)}\n`;
-    md += `- **Total Lost Time:** ${formatDur(shortageSecs > 0 ? shortageSecs : totalAllLostSecs)}\n\n`;
-
-    if (ooqUnacts.length > 0) {
-      md += `#### UN-OOQ (Total: ${formatDur(totalOOQSecs)})\n`;
-      md += `| HR ID | Email | Team Leader | SPV | Status | Start | End | Aux Duration |\n|---|---|---|---|---|---|---|---|\n`;
-      ooqUnacts.forEach((u: any) => {
-        const info = agentInfo[u.email?.toLowerCase()] || {};
-        md += `| ${info.hr || '-'} | ${u.email} | ${info.tl || '-'} | ${info.osv || '-'} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—'} | ${formatDur(u.durSecs)} |\n`;
-      });
-      md += `\n`;
-    }
-
-    if (lateBreaksUnacts.length > 0) {
-      md += `#### Late breaks (Total: ${formatDur(totalLateBreaksSecs)})\n`;
-      md += `| Agent Email | Status | Start | End | Total Duration |\n|---|---|---|---|---|\n`;
-      lateBreaksUnacts.forEach((u: any) => {
-        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—'} | ${formatDur(u.durSecs)} |\n`;
-      });
-      md += `\n`;
-    }
-
-    if (unBreaksUnacts.length > 0) {
-      md += `#### UN-Breaks (Total: ${formatDur(totalUNBreaksSecs)})\n`;
-      md += `| Agent Email | Status | Start | End | Total Duration |\n|---|---|---|---|---|\n`;
-      unBreaksUnacts.forEach((u: any) => {
-        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—'} | ${formatDur(u.durSecs)} |\n`;
-      });
-      md += `\n`;
-    }
-
-    if (unavailUnacts.length > 0) {
-      md += `#### Unavailable (Total: ${formatDur(totalUnavailSecs)})\n`;
-      md += `| Agent Email | Status | Start | End | Total Duration |\n|---|---|---|---|---|\n`;
-      unavailUnacts.forEach((u: any) => {
-        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—'} | ${formatDur(u.durSecs)} |\n`;
-      });
-      md += `\n`;
-    }
-
-    navigator.clipboard.writeText(md);
-    setCopiedSummary(true);
-    setTimeout(() => setCopiedSummary(false), 2000);
-  };
-
-  // Export to Excel
-  const handleExportExcel = () => {
-    const wb = XLSX.utils.book_new();
-
-    if (ooqUnacts.length > 0) {
-      const dataOOQ = ooqUnacts.map((u: any) => {
-        const info = agentInfo[u.email?.toLowerCase()] || {};
-        return {
-          "HR ID": info.hr || "-",
-          "Email": u.email,
-          "Team Leader": info.tl || "-",
-          "SPV": info.osv || "-",
-          "LOB": info.lobs?.[iso] || lobTitle,
-          "Status": u.type,
-          "Start": formatTimestamp(u.startMs, iso, intObj.sk),
-          "End": u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—',
-          "Aux Duration": formatDur(u.durSecs),
-        };
-      });
-      const wsOOQ = XLSX.utils.json_to_sheet(dataOOQ);
-      XLSX.utils.book_append_sheet(wb, wsOOQ, "UN-OOQ");
-    }
-
-    if (lateBreaksUnacts.length > 0) {
-      const dataLate: any[] = [];
-      lateBreaksUnacts.forEach((u: any) => {
-        dataLate.push({
-          "Agent Email": u.email,
-          "Status": u.type,
-          "Start": formatTimestamp(u.startMs, iso, intObj.sk),
-          "End": u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—',
-          "Total Duration": formatDur(u.durSecs),
-        });
-      });
-      const wsLate = XLSX.utils.json_to_sheet(dataLate);
-      XLSX.utils.book_append_sheet(wb, wsLate, "Late Breaks");
-    }
-
-    if (unBreaksUnacts.length > 0) {
-      const dataUNB: any[] = [];
-      unBreaksUnacts.forEach((u: any) => {
-        dataUNB.push({
-          "Agent Email": u.email,
-          "Status": u.type,
-          "Start": formatTimestamp(u.startMs, iso, intObj.sk),
-          "End": u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—',
-          "Total Duration": formatDur(u.durSecs),
-        });
-      });
-      const wsUNB = XLSX.utils.json_to_sheet(dataUNB);
-      XLSX.utils.book_append_sheet(wb, wsUNB, "UN-Breaks");
-    }
-
-    if (unavailUnacts.length > 0) {
-      const dataUnav: any[] = [];
-      unavailUnacts.forEach((u: any) => {
-        dataUnav.push({
-          "Agent Email": u.email,
-          "Status": u.type,
-          "Start": formatTimestamp(u.startMs, iso, intObj.sk),
-          "End": u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—',
-          "Total Duration": formatDur(u.durSecs),
-        });
-      });
-      const wsUnav = XLSX.utils.json_to_sheet(dataUnav);
-      XLSX.utils.book_append_sheet(wb, wsUnav, "Unavailable");
-    }
-
-    XLSX.writeFile(wb, `Interval_Analysis_${lobId}_${iso}_${intObj.label.replace(':', '')}.xlsx`);
-  };
-
-  return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 animate-in fade-in duration-200"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div 
-        className="relative w-full max-w-5xl bg-surface-0 dark:bg-[#16181f] border border-surface-200 dark:border-surface-700/80 rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        
-        {/* Top Header Hero */}
-        <div className="px-6 py-4 border-b border-surface-200 dark:border-surface-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-50/90 dark:bg-[#252836]/60">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-danger-50 dark:bg-danger-950/50 border border-danger-200 dark:border-danger-900/60 flex items-center justify-center text-surface-800 dark:text-surface-300 shadow-sm">
-              <ShieldAlert size={22} />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-surface-900 dark:text-white">
-                  Down Interval Root Cause Analysis
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-danger-100 dark:bg-danger-900/40 text-danger-700 dark:text-danger-300 border border-danger-200 dark:border-danger-800/60 ">
                   {intObj.label} • {iso}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800/60">
@@ -542,7 +375,7 @@ export default function ICAnalysisModal({
           {/* Card 1: UN-OOQ */}
           <div 
             onClick={() => setActiveTab('ooq')}
-            className={cursor-pointer p-3 rounded-xl border transition-all }
+            className="cursor-pointer p-3 rounded-xl border transition-all"
           >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#4d4d8a] dark:text-[#cda4ff] uppercase tracking-wider">UN-OOQ</span>
@@ -555,7 +388,7 @@ export default function ICAnalysisModal({
           {/* Card 2: UN-Breaks */}
           <div 
             onClick={() => setActiveTab('unbreaks')}
-            className={cursor-pointer p-3 rounded-xl border transition-all }
+            className="cursor-pointer p-3 rounded-xl border transition-all"
           >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#0284c7] dark:text-[#38bdf8] uppercase tracking-wider">UN-Breaks</span>
@@ -568,7 +401,7 @@ export default function ICAnalysisModal({
           {/* Card 3: Late breaks */}
           <div 
             onClick={() => setActiveTab('latebreaks')}
-            className={cursor-pointer p-3 rounded-xl border transition-all }
+            className="cursor-pointer p-3 rounded-xl border transition-all"
           >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-[#1a6b8c] dark:text-[#67e8f9] uppercase tracking-wider">Late breaks</span>
@@ -581,7 +414,7 @@ export default function ICAnalysisModal({
           {/* Card 4: Unavailable */}
           <div 
             onClick={() => setActiveTab('unavail')}
-            className={cursor-pointer p-3 rounded-xl border transition-all }
+            className="cursor-pointer p-3 rounded-xl border transition-all"
           >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-danger-600 dark:text-danger-400 uppercase tracking-wider">Unavailable</span>

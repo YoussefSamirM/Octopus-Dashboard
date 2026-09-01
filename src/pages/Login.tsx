@@ -182,7 +182,7 @@ export default function Login() {
       try {
         data = await res.json();
       } catch (err) {
-        throw new Error('Backend returned invalid response. Ensure the backend server was restarted.');
+        throw new Error('Unable to connect to the authentication server. Please try again later.');
       }
       
       if (!res.ok) {
