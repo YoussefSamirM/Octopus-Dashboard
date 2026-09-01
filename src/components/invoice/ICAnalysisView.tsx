@@ -473,6 +473,8 @@ export default function ICAnalysisView({
                     <th className="font-semibold p-3">SPV</th>
                     <th className="font-semibold p-3">LOB</th>
                     <th className="font-semibold p-3">Status</th>
+                    <th className="font-semibold p-3">Start</th>
+                    <th className="font-semibold p-3">End</th>
                     <th className="font-semibold p-3 text-right">Aux Duration</th>
                   </tr>
                 </thead>
@@ -501,6 +503,12 @@ export default function ICAnalysisView({
                               {String(u.type).toUpperCase()}
                             </span>
                           </td>
+                          <td className="p-3 text-surface-700">
+                            {formatTimestamp(u.startMs, iso, sk)}
+                          </td>
+                          <td className="p-3 text-surface-700">
+                            {u.endMs ? formatTimestamp(u.endMs, iso, sk) : '—'}
+                          </td>
                           <td className="p-3 text-right font-semibold text-surface-900">
                             {formatDur(u.durSecs)}
                           </td>
@@ -509,14 +517,14 @@ export default function ICAnalysisView({
                     })
                   ) : (
                     <tr>
-                      <td colSpan={7} className="p-6 text-center text-surface-400">
+                      <td colSpan={9} className="p-6 text-center text-surface-400">
                         No unauthorized OOQ activities matching your filters.
                       </td>
                     </tr>
                   )}
                   {filteredOOQ.length > 0 && (
                     <tr className="bg-surface-50 font-bold border-t-2 border-surface-200">
-                      <td colSpan={6} className="p-3 text-right text-surface-700">
+                      <td colSpan={8} className="p-3 text-right text-surface-700">
                         Total Aux:
                       </td>
                       <td className="p-3 text-right text-surface-900">
@@ -552,7 +560,8 @@ export default function ICAnalysisView({
                   <tr className="bg-[#4d4d8a] text-white">
                     <th className="font-semibold p-3">Agent Email</th>
                     <th className="font-semibold p-3 text-center">Status</th>
-                    <th className="font-semibold p-3">Date</th>
+                    <th className="font-semibold p-3">Start</th>
+                    <th className="font-semibold p-3">End</th>
                     <th className="font-semibold p-3 text-right">Total Duration</th>
                   </tr>
                 </thead>
@@ -561,7 +570,7 @@ export default function ICAnalysisView({
                     filteredUNBreaks.map((u: any, idx: number) => {
                       return (
                         <React.Fragment key={idx}>
-                          <tr className="hover:bg-surface-50/50 transition-colors">
+                          <tr className="hover:bg-surface-50/50">
                             <td className="p-3 font-semibold text-surface-900">
                               {u.email}
                             </td>
@@ -573,38 +582,26 @@ export default function ICAnalysisView({
                             <td className="p-3 text-surface-700">
                               {formatTimestamp(u.startMs, iso, sk)}
                             </td>
-                            <td rowSpan={u.endMs ? 2 : 1} className="p-3 text-right font-semibold text-surface-900 align-middle border-l border-surface-200">
+                            <td className="p-3 text-surface-700">
+                              {u.endMs ? formatTimestamp(u.endMs, iso, sk) : '—'}
+                            </td>
+                            <td className="p-3 text-right font-semibold text-surface-900 align-middle border-l border-surface-200">
                               {formatDur(u.durSecs)}
                             </td>
                           </tr>
-                          {u.endMs && (
-                            <tr className="hover:bg-surface-50/50 border-b border-surface-200 bg-surface-50/30">
-                              <td className="p-2.5 text-surface-500 text-2xs">
-                                {u.email}
-                              </td>
-                              <td className="p-2.5 text-center">
-                                <span className="px-2 py-0.5 rounded text-2xs font-semibold bg-success-50 dark:bg-success-950/40 text-success-700 dark:text-success-400 border border-success-200 dark:border-success-800">
-                                  ONLINE
-                                </span>
-                              </td>
-                              <td className="p-2.5 text-surface-500 text-2xs">
-                                {formatTimestamp(u.endMs, iso, sk)}
-                              </td>
-                            </tr>
-                          )}
                         </React.Fragment>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={4} className="p-6 text-center text-surface-400">
+                      <td colSpan={5} className="p-6 text-center text-surface-400">
                         No unauthorized breaks matching your filters.
                       </td>
                     </tr>
                   )}
                   {filteredUNBreaks.length > 0 && (
                     <tr className="bg-surface-50 font-bold border-t-2 border-surface-200">
-                      <td colSpan={3} className="p-3 text-right text-surface-700">
+                      <td colSpan={4} className="p-3 text-right text-surface-700">
                         Total Lost Hours:
                       </td>
                       <td className="p-3 text-right text-surface-900">
@@ -640,7 +637,8 @@ export default function ICAnalysisView({
                   <tr className="bg-[#4d4d8a] text-white">
                     <th className="font-semibold p-3">Agent Email</th>
                     <th className="font-semibold p-3 text-center">Status</th>
-                    <th className="font-semibold p-3">Date</th>
+                    <th className="font-semibold p-3">Start</th>
+                    <th className="font-semibold p-3">End</th>
                     <th className="font-semibold p-3 text-right">Total Duration</th>
                   </tr>
                 </thead>
@@ -649,7 +647,7 @@ export default function ICAnalysisView({
                     filteredLateBreaks.map((u: any, idx: number) => {
                       return (
                         <React.Fragment key={idx}>
-                          <tr className="hover:bg-surface-50/50 transition-colors">
+                          <tr className="hover:bg-surface-50/50">
                             <td className="p-3 font-semibold text-surface-900">
                               {u.email}
                             </td>
@@ -661,38 +659,26 @@ export default function ICAnalysisView({
                             <td className="p-3 text-surface-700">
                               {formatTimestamp(u.startMs, iso, sk)}
                             </td>
-                            <td rowSpan={u.endMs ? 2 : 1} className="p-3 text-right font-semibold text-surface-900 align-middle border-l border-surface-200">
+                            <td className="p-3 text-surface-700">
+                              {u.endMs ? formatTimestamp(u.endMs, iso, sk) : '—'}
+                            </td>
+                            <td className="p-3 text-right font-semibold text-surface-900 align-middle border-l border-surface-200">
                               {formatDur(u.durSecs)}
                             </td>
                           </tr>
-                          {u.endMs && (
-                            <tr className="hover:bg-surface-50/50 border-b border-surface-200 bg-surface-50/30">
-                              <td className="p-2.5 text-surface-500 text-2xs">
-                                {u.email}
-                              </td>
-                              <td className="p-2.5 text-center">
-                                <span className="px-2 py-0.5 rounded text-2xs font-semibold bg-success-50 dark:bg-success-950/40 text-success-700 dark:text-success-400 border border-success-200 dark:border-success-800">
-                                  ONLINE
-                                </span>
-                              </td>
-                              <td className="p-2.5 text-surface-500 text-2xs">
-                                {formatTimestamp(u.endMs, iso, sk)}
-                              </td>
-                            </tr>
-                          )}
                         </React.Fragment>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={4} className="p-6 text-center text-surface-400">
+                      <td colSpan={5} className="p-6 text-center text-surface-400">
                         No late breaks matching your filters.
                       </td>
                     </tr>
                   )}
                   {filteredLateBreaks.length > 0 && (
                     <tr className="bg-surface-50 font-bold border-t-2 border-surface-200">
-                      <td colSpan={3} className="p-3 text-right text-surface-700">
+                      <td colSpan={4} className="p-3 text-right text-surface-700">
                         Total Lost Hours:
                       </td>
                       <td className="p-3 text-right text-surface-900">
@@ -728,7 +714,8 @@ export default function ICAnalysisView({
                   <tr className="bg-[#4d4d8a] text-white">
                     <th className="font-semibold p-3">Agent Email</th>
                     <th className="font-semibold p-3 text-center">Status</th>
-                    <th className="font-semibold p-3">Date</th>
+                    <th className="font-semibold p-3">Start</th>
+                    <th className="font-semibold p-3">End</th>
                     <th className="font-semibold p-3 text-right">Total Duration</th>
                   </tr>
                 </thead>
@@ -737,7 +724,7 @@ export default function ICAnalysisView({
                     filteredUnavail.map((u: any, idx: number) => {
                       return (
                         <React.Fragment key={idx}>
-                          <tr className="hover:bg-surface-50/50 transition-colors">
+                          <tr className="hover:bg-surface-50/50">
                             <td className="p-3 font-semibold text-surface-900">
                               {u.email}
                             </td>
@@ -749,38 +736,26 @@ export default function ICAnalysisView({
                             <td className="p-3 text-surface-700">
                               {formatTimestamp(u.startMs, iso, sk)}
                             </td>
-                            <td rowSpan={u.endMs ? 2 : 1} className="p-3 text-right font-semibold text-surface-900 align-middle border-l border-surface-200">
+                            <td className="p-3 text-surface-700">
+                              {u.endMs ? formatTimestamp(u.endMs, iso, sk) : '—'}
+                            </td>
+                            <td className="p-3 text-right font-semibold text-surface-900 align-middle border-l border-surface-200">
                               {formatDur(u.durSecs)}
                             </td>
                           </tr>
-                          {u.endMs && (
-                            <tr className="hover:bg-surface-50/50 border-b border-surface-200 bg-surface-50/30">
-                              <td className="p-2.5 text-surface-500 text-2xs">
-                                {u.email}
-                              </td>
-                              <td className="p-2.5 text-center">
-                                <span className="px-2 py-0.5 rounded text-2xs font-semibold bg-success-50 dark:bg-success-950/40 text-success-700 dark:text-success-400 border border-success-200 dark:border-success-800">
-                                  ONLINE
-                                </span>
-                              </td>
-                              <td className="p-2.5 text-surface-500 text-2xs">
-                                {formatTimestamp(u.endMs, iso, sk)}
-                              </td>
-                            </tr>
-                          )}
                         </React.Fragment>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={4} className="p-6 text-center text-surface-400">
+                      <td colSpan={5} className="p-6 text-center text-surface-400">
                         No unavailable/offline agents matching your filters.
                       </td>
                     </tr>
                   )}
                   {filteredUnavail.length > 0 && (
                     <tr className="bg-surface-50 font-bold border-t-2 border-surface-200">
-                      <td colSpan={3} className="p-3 text-right text-surface-700">
+                      <td colSpan={4} className="p-3 text-right text-surface-700">
                         Total Lost Hours:
                       </td>
                       <td className="p-3 text-right text-surface-900">

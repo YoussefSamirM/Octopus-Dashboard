@@ -365,46 +365,37 @@ export default function ICAnalysisModal({
 
     if (ooqUnacts.length > 0) {
       md += `#### UN-OOQ (Total: ${formatDur(totalOOQSecs)})\n`;
-      md += `| HR ID | Email | Team Leader | SPV | Status | Aux Duration |\n|---|---|---|---|---|---|\n`;
+      md += `| HR ID | Email | Team Leader | SPV | Status | Start | End | Aux Duration |\n|---|---|---|---|---|---|---|---|\n`;
       ooqUnacts.forEach((u: any) => {
         const info = agentInfo[u.email?.toLowerCase()] || {};
-        md += `| ${info.hr || '-'} | ${u.email} | ${info.tl || '-'} | ${info.osv || '-'} | ${u.type} | ${formatDur(u.durSecs)} |\n`;
+        md += `| ${info.hr || '-'} | ${u.email} | ${info.tl || '-'} | ${info.osv || '-'} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—'} | ${formatDur(u.durSecs)} |\n`;
       });
       md += `\n`;
     }
 
     if (lateBreaksUnacts.length > 0) {
       md += `#### Late breaks (Total: ${formatDur(totalLateBreaksSecs)})\n`;
-      md += `| Agent Email | Status | Date | Total Duration |\n|---|---|---|---|\n`;
+      md += `| Agent Email | Status | Start | End | Total Duration |\n|---|---|---|---|---|\n`;
       lateBreaksUnacts.forEach((u: any) => {
-        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${formatDur(u.durSecs)} |\n`;
-        if (u.endMs) {
-          md += `| ${u.email} | ONLINE | ${formatTimestamp(u.endMs, iso, intObj.sk)} | |\n`;
-        }
+        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—'} | ${formatDur(u.durSecs)} |\n`;
       });
       md += `\n`;
     }
 
     if (unBreaksUnacts.length > 0) {
       md += `#### UN-Breaks (Total: ${formatDur(totalUNBreaksSecs)})\n`;
-      md += `| Agent Email | Status | Date | Total Duration |\n|---|---|---|---|\n`;
+      md += `| Agent Email | Status | Start | End | Total Duration |\n|---|---|---|---|---|\n`;
       unBreaksUnacts.forEach((u: any) => {
-        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${formatDur(u.durSecs)} |\n`;
-        if (u.endMs) {
-          md += `| ${u.email} | ONLINE | ${formatTimestamp(u.endMs, iso, intObj.sk)} | |\n`;
-        }
+        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—'} | ${formatDur(u.durSecs)} |\n`;
       });
       md += `\n`;
     }
 
     if (unavailUnacts.length > 0) {
       md += `#### Unavailable (Total: ${formatDur(totalUnavailSecs)})\n`;
-      md += `| Agent Email | Status | Date | Total Duration |\n|---|---|---|---|\n`;
+      md += `| Agent Email | Status | Start | End | Total Duration |\n|---|---|---|---|---|\n`;
       unavailUnacts.forEach((u: any) => {
-        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${formatDur(u.durSecs)} |\n`;
-        if (u.endMs) {
-          md += `| ${u.email} | ONLINE | ${formatTimestamp(u.endMs, iso, intObj.sk)} | |\n`;
-        }
+        md += `| ${u.email} | ${u.type} | ${formatTimestamp(u.startMs, iso, intObj.sk)} | ${u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—'} | ${formatDur(u.durSecs)} |\n`;
       });
       md += `\n`;
     }
@@ -428,6 +419,8 @@ export default function ICAnalysisModal({
           "SPV": info.osv || "-",
           "LOB": info.lobs?.[iso] || lobTitle,
           "Status": u.type,
+          "Start": formatTimestamp(u.startMs, iso, intObj.sk),
+          "End": u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—',
           "Aux Duration": formatDur(u.durSecs),
         };
       });
@@ -441,17 +434,10 @@ export default function ICAnalysisModal({
         dataLate.push({
           "Agent Email": u.email,
           "Status": u.type,
-          "Date": formatTimestamp(u.startMs, iso, intObj.sk),
+          "Start": formatTimestamp(u.startMs, iso, intObj.sk),
+          "End": u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—',
           "Total Duration": formatDur(u.durSecs),
         });
-        if (u.endMs) {
-          dataLate.push({
-            "Agent Email": u.email,
-            "Status": "ONLINE",
-            "Date": formatTimestamp(u.endMs, iso, intObj.sk),
-            "Total Duration": "",
-          });
-        }
       });
       const wsLate = XLSX.utils.json_to_sheet(dataLate);
       XLSX.utils.book_append_sheet(wb, wsLate, "Late Breaks");
@@ -463,17 +449,10 @@ export default function ICAnalysisModal({
         dataUNB.push({
           "Agent Email": u.email,
           "Status": u.type,
-          "Date": formatTimestamp(u.startMs, iso, intObj.sk),
+          "Start": formatTimestamp(u.startMs, iso, intObj.sk),
+          "End": u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—',
           "Total Duration": formatDur(u.durSecs),
         });
-        if (u.endMs) {
-          dataUNB.push({
-            "Agent Email": u.email,
-            "Status": "ONLINE",
-            "Date": formatTimestamp(u.endMs, iso, intObj.sk),
-            "Total Duration": "",
-          });
-        }
       });
       const wsUNB = XLSX.utils.json_to_sheet(dataUNB);
       XLSX.utils.book_append_sheet(wb, wsUNB, "UN-Breaks");
@@ -485,17 +464,10 @@ export default function ICAnalysisModal({
         dataUnav.push({
           "Agent Email": u.email,
           "Status": u.type,
-          "Date": formatTimestamp(u.startMs, iso, intObj.sk),
+          "Start": formatTimestamp(u.startMs, iso, intObj.sk),
+          "End": u.endMs ? formatTimestamp(u.endMs, iso, intObj.sk) : '—',
           "Total Duration": formatDur(u.durSecs),
         });
-        if (u.endMs) {
-          dataUnav.push({
-            "Agent Email": u.email,
-            "Status": "ONLINE",
-            "Date": formatTimestamp(u.endMs, iso, intObj.sk),
-            "Total Duration": "",
-          });
-        }
       });
       const wsUnav = XLSX.utils.json_to_sheet(dataUnav);
       XLSX.utils.book_append_sheet(wb, wsUnav, "Unavailable");

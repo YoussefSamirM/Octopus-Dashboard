@@ -109,7 +109,8 @@ export const useAppStore = create<AppState>()(
       setIsExecuting: (val) => set({ isExecuting: val }),
     }),
     {
-      name: 'wfm-platform-state',
+      name: 'octopus-rtm-state-v2',
+      version: 1,
       partialize: (state) => ({
         isAppLoggedIn: state.isAppLoggedIn,
         loginTimestamp: state.loginTimestamp,
