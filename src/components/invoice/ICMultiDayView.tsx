@@ -11,7 +11,7 @@ const LOBs = [
   { id: "TMart-FU", title: "T-Mart Follow Up", color: "#ec4899" },
 ];
 export default function ICMultiDayView({ onSelectLob }: ICMultiDayViewProps) {
-  const { globalProcessedData, sortedDates, currentShiftMode, setShiftMode } =
+  const { globalProcessedData, sortedDates, currentShiftMode, setShiftMode, referenceData } =
     useInvoiceStore();
   const formatTimeSecs = (totalSeconds: number) => {
     if (
@@ -71,9 +71,29 @@ export default function ICMultiDayView({ onSelectLob }: ICMultiDayViewProps) {
               lGrantedBill = 0,
               passedIntervals = 0,
               totalIntervals = 0;
+            let refDaysCount = 0;
+            let refIcSum = 0;
+            
             filteredDates.forEach((dIso) => {
               const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lob.id];
-              if (d) {
+              
+              if (referenceData && referenceData[lob.id] && referenceData[lob.id][dIso]) {
+                const ref = referenceData[lob.id][dIso];
+                lReq += ref.reqSecs !== undefined ? ref.reqSecs : (d?.req || 0);
+                lAct += ref.actualSecs !== undefined ? ref.actualSecs : (d?.act || 0);
+                lBill += ref.billSecs !== undefined ? ref.billSecs : (d?.bill || 0);
+                if (ref.icPerc !== undefined) {
+                  refIcSum += ref.icPerc;
+                  refDaysCount++;
+                } else if (d && d.intervals) {
+                  passedIntervals += d.intervals.filter((i: any) => (i.req > 0 || i.act > 0) && (i.act >= i.req || i.bill >= i.req)).length;
+                  totalIntervals += d.intervals.filter((i: any) => i.req > 0 || i.act > 0).length;
+                }
+                if (d) {
+                  lGranted += (d.granted || 0);
+                  lGrantedBill += (d.grantedBill || 0);
+                }
+              } else if (d) {
                 lReq += d.req;
                 lAct += d.act;
                 lBill += d.bill;
@@ -85,7 +105,10 @@ export default function ICMultiDayView({ onSelectLob }: ICMultiDayViewProps) {
                 }
               }
             });
-            const ic = totalIntervals === 0 ? 100 : (passedIntervals / totalIntervals) * 100;
+            let ic = refDaysCount > 0 ? (refIcSum / refDaysCount) : (totalIntervals === 0 ? 100 : (passedIntervals / totalIntervals) * 100);
+            if (selectedMonth === "all" && referenceData?.[lob.id]?.['total']?.icPerc !== undefined) {
+              ic = referenceData[lob.id]['total'].icPerc;
+            }
             return (
               <div
                 key={lob.id}
@@ -102,43 +125,45 @@ export default function ICMultiDayView({ onSelectLob }: ICMultiDayViewProps) {
                   />{" "}
                 </h3>{" "}
                 <div className="flex justify-between items-center py-3 border-b border-surface-200">
-                  {" "}
                   <span className="text-xs font-semibold text-surface-500">
                     REQ
-                  </span>{" "}
-                  <span className="text-base font-semibold text-surface-900">
-                    {formatTimeSecs(lReq)}
-                  </span>{" "}
-                </div>{" "}
+                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-base font-semibold text-surface-900">
+                      {formatTimeSecs(lReq)}
+                    </span>
+                  </div>
+                </div>
                 <div className="flex justify-between items-center py-3 border-b border-surface-200">
-                  {" "}
                   <span className="text-xs font-semibold text-surface-500">
                     Actual
-                  </span>{" "}
-                  <span className="text-base font-semibold text-surface-900">
-                    {formatTimeSecs(lAct)}
-                  </span>{" "}
-                </div>{" "}
+                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-base font-semibold text-surface-900">
+                      {formatTimeSecs(lAct)}
+                    </span>
+                  </div>
+                </div>
                 <div className="flex justify-between items-center py-3 border-b border-surface-200">
-                  {" "}
                   <span className="text-xs font-semibold text-surface-500">
                     Billable
-                  </span>{" "}
-                  <span className="text-base font-semibold text-brand-600 dark:text-brand-400">
-                    {formatTimeSecs(lBill)}
-                  </span>{" "}
-                </div>{" "}
+                  </span>
+                  <div className="flex flex-col items-end">
+                    <span className="text-base font-semibold text-brand-600 dark:text-brand-400">
+                      {formatTimeSecs(lBill)}
+                    </span>
+                  </div>
+                </div>
                 <div className="flex justify-between items-center pt-3">
-                  {" "}
                   <span className="text-xs font-semibold text-surface-500">
                     IC %
-                  </span>{" "}
+                  </span>
                   <span
                     className={`text-base font-semibold ${ic >= 100 ? "text-success-600" : "text-danger-600"}`}
                   >
                     {formatPerc(ic)}
-                  </span>{" "}
-                </div>{" "}
+                  </span>
+                </div>
               </div>
             );
           })}{" "}

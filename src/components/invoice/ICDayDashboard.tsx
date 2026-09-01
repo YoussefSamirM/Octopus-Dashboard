@@ -24,7 +24,7 @@ export default function ICDayDashboard({
   onViewAnalysis,
   viewMode = 'overview'
 }: ICDayDashboardProps) {
-  const { globalProcessedData, currentShiftMode, agentInfo } = useInvoiceStore();
+  const { globalProcessedData, currentShiftMode, agentInfo, referenceData } = useInvoiceStore();
   const dayData = globalProcessedData[iso]?.[currentShiftMode];
   const lobData = dayData?.[lobId];
   if (!lobData) return null;
@@ -48,20 +48,39 @@ export default function ICDayDashboard({
   const enrichedIntervals = useMemo(() => {
     let cumReq = 0;
     let cumAct = 0;
+
+    let reqScale = 1;
+    let actScale = 1;
+    let billScale = 1;
+
+    const ref = referenceData?.[lobId]?.[iso];
+    if (ref && lobData) {
+      if (lobData.req > 0 && ref.reqSecs !== undefined) reqScale = ref.reqSecs / lobData.req;
+      if (lobData.act > 0 && ref.actualSecs !== undefined) actScale = ref.actualSecs / lobData.act;
+      if (lobData.bill > 0 && ref.billSecs !== undefined) billScale = ref.billSecs / lobData.bill;
+    }
+
     return lobData.intervals.map((int: any) => {
-      cumReq += int.req;
-      cumAct += int.act;
-      let isP = int.act >= int.req || int.bill >= int.req;
-      let icVal = int.req > 0 ? Math.min(100, ((isP ? int.req : int.bill) / int.req) * 100) : 100;
+      const scaledReq = int.req * reqScale;
+      const scaledAct = int.act * actScale;
+      const scaledBill = int.bill * billScale;
+
+      cumReq += scaledReq;
+      cumAct += scaledAct;
+      let isP = scaledAct >= scaledReq || scaledBill >= scaledReq;
+      let icVal = scaledReq > 0 ? Math.min(100, ((isP ? scaledReq : scaledBill) / scaledReq) * 100) : 100;
       return {
         ...int,
-        variance: int.act - int.req,
+        req: scaledReq,
+        act: scaledAct,
+        bill: scaledBill,
+        variance: scaledAct - scaledReq,
         icPerc: icVal,
         cumReq,
         cumAct
       };
     });
-  }, [lobData.intervals]);
+  }, [lobData.intervals, referenceData, lobId, iso]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -136,14 +155,18 @@ export default function ICDayDashboard({
               <Clock className="text-surface-400" size={16} />
               <h3 className="text-xs font-semibold text-surface-500">Total Required</h3>
             </div>
-            <p className="text-2xl font-semibold text-surface-900">{formatTimeSecs(lobData.req)}</p>
+            <p className="text-2xl font-semibold text-surface-900">
+              {formatTimeSecs(referenceData?.[lobId]?.[iso]?.reqSecs ?? lobData.req)}
+            </p>
           </div>
           <div className="card p-4 sm:p-5 shadow-xs">
             <div className="flex items-center gap-2 mb-1.5">
               <Activity className="text-surface-400" size={16} />
               <h3 className="text-xs font-semibold text-surface-500">Total Actual</h3>
             </div>
-            <p className="text-2xl font-semibold text-surface-900">{formatTimeSecs(lobData.act)}</p>
+            <p className="text-2xl font-semibold text-surface-900">
+              {formatTimeSecs(referenceData?.[lobId]?.[iso]?.actualSecs ?? lobData.act)}
+            </p>
           </div>
           <div className="card p-4 sm:p-5 shadow-xs">
             <div className="flex items-center gap-2 mb-1.5">
@@ -151,6 +174,14 @@ export default function ICDayDashboard({
               <h3 className="text-xs font-semibold text-surface-500">Day IC%</h3>
             </div>
             {(() => {
+              if (referenceData?.[lobId]?.[iso]?.icPerc !== undefined) {
+                const dIc = referenceData[lobId][iso].icPerc;
+                return (
+                  <p className={`text-2xl font-semibold ${dIc >= 95 ? 'text-success-600' : 'text-danger-600'}`}>
+                    {formatPerc(dIc)}
+                  </p>
+                );
+              }
               const activeInts = lobData.intervals.filter((i: any) => i.req > 0 || i.act > 0);
               const passedInts = activeInts.filter((i: any) => i.act >= i.req || i.bill >= i.req).length;
               const dIc = activeInts.length > 0 ? (passedInts / activeInts.length) * 100 : 100;
@@ -314,7 +345,7 @@ export default function ICDayDashboard({
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-100 dark:divide-white/5">
-            {lobData.intervals.length === 0 ? (
+            {enrichedIntervals.length === 0 ? (
               <tr>
                 <td colSpan={9} className="text-center py-12 text-surface-500">
                   <Calendar className="mx-auto h-12 w-12 text-surface-300 mb-4" />
@@ -322,7 +353,7 @@ export default function ICDayDashboard({
                 </td>
               </tr>
             ) : (
-              lobData.intervals.map((intObj: any, i: number) => {
+              enrichedIntervals.map((intObj: any, i: number) => {
                 if (intObj.req > 0 || intObj.act > 0) {
                   let isPass = intObj.act >= intObj.req || intObj.bill >= intObj.req;
                   let rawIc = intObj.req === 0 ? 100 : ((isPass ? intObj.req : intObj.bill) / intObj.req) * 100;
@@ -359,17 +390,17 @@ export default function ICDayDashboard({
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col gap-1">
-                          {intObj.lost > 0 && !isPass && (
+                          {intObj.req > intObj.act && !isPass && (
                             <span className="text-xs font-semibold text-danger-600">
-                              -{formatTimeSecs(intObj.lost)}
+                              -{formatTimeSecs(intObj.req - Math.max(intObj.act, intObj.bill))}
                             </span>
                           )}
-                          {intObj.over > 0 && (
+                          {intObj.act > intObj.req && (
                             <span className="text-xs font-semibold text-success-600">
-                              +{formatTimeSecs(intObj.over)}
+                              +{formatTimeSecs(intObj.act - intObj.req)}
                             </span>
                           )}
-                          {((intObj.lost === 0 || isPass) && intObj.over === 0) && (
+                          {(intObj.act === intObj.req || (isPass && intObj.act <= intObj.req)) && (
                             <span className="text-xs font-semibold text-surface-400">-</span>
                           )}
                         </div>

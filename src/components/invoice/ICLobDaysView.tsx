@@ -16,7 +16,7 @@ export default function ICLobDaysView({
   lobId,
   onSelectDate,
 }: ICLobDaysViewProps) {
-  const { globalProcessedData, sortedDates, currentShiftMode } =
+  const { globalProcessedData, sortedDates, currentShiftMode, referenceData } =
     useInvoiceStore();
   const lobConf = LOBs.find((l) => l.id === lobId);
   if (!lobConf) return null;
@@ -44,26 +44,17 @@ export default function ICLobDaysView({
     tGrantedBill = 0;
 
   const chartData = sortedDates.map(dIso => {
-    const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
-    if (!d) return null;
+    const baseD = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
+    const ref = referenceData?.[lobId]?.[dIso];
+    if (!baseD && !ref) return null;
     
-    // For cumulative totals
-    if (d.req > 0 || d.act > 0 || d.sch > 0) {
-      tReq += d.req;
-      tAct += d.act;
-      tBill += d.bill;
-      tOver += d.over;
-      tLost += d.lost;
-      tHc += d.sch;
-      tAbs += d.abs;
-      tGranted += (d.granted || 0);
-      tGrantedBill += (d.grantedBill || 0);
-    }
-    
+    const dReq = ref ? (ref.reqSecs || 0) : (baseD?.req || 0);
+    const dAct = ref ? (ref.actualSecs || 0) : (baseD?.act || 0);
+
     return {
-      date: dIso.slice(5), // MM-DD
-      req: d.req,
-      act: d.act
+      date: dIso.slice(5),
+      req: dReq,
+      act: dAct
     };
   }).filter(Boolean);
 
@@ -148,24 +139,43 @@ export default function ICLobDaysView({
           <tbody>
             {" "}
             {sortedDates.map((dIso) => {
-              const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
-              if (d && (d.req > 0 || d.act > 0 || d.sch > 0)) {
-                tReq += d.req;
-                tAct += d.act;
-                tBill += d.bill;
-                tOver += d.over;
-                tLost += d.lost;
-                tHc += d.sch;
-                tAbs += d.abs;
-                tGranted += (d.granted || 0);
-                tGrantedBill += (d.grantedBill || 0);
-                let schHrs = d.sch * 0.89;
-                let schPerc = d.req > 0 ? (schHrs / d.req) * 100 : 0;
-                let passedIntervals = d.intervals ? d.intervals.filter((i: any) => (i.req > 0 || i.act > 0) && (i.act >= i.req || i.bill >= i.req)).length : 0;
-                let activeIntervals = d.intervals ? d.intervals.filter((i: any) => i.req > 0 || i.act > 0).length : 0;
-                let ic = activeIntervals > 0 ? (passedIntervals / activeIntervals) * 100 : 100;
-                let ovPerc = d.req > 0 ? (d.over / d.req) * 100 : 0;
-                let absPerc = d.sch > 0 ? (d.abs / d.sch) * 100 : 0;
+              const baseD = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
+              const ref = referenceData?.[lobId]?.[dIso];
+              if (!baseD && !ref) return null;
+
+              const dReq = ref && ref.reqSecs !== undefined ? ref.reqSecs : (baseD?.req || 0);
+              const dAct = ref && ref.actualSecs !== undefined ? ref.actualSecs : (baseD?.act || 0);
+              const dBill = ref && ref.billSecs !== undefined ? ref.billSecs : (baseD?.bill || 0);
+              const dSch = baseD?.sch || 0;
+              const dOver = dAct > dReq ? dAct - dReq : 0;
+              const dLost = dReq > dAct ? dReq - dAct : 0;
+              const dAbs = baseD?.abs || 0;
+              let dAbsPerc = dSch > 0 ? (dAbs / dSch) * 100 : 0;
+
+              if (dReq > 0 || dAct > 0 || dSch > 0) {
+                tReq += dReq;
+                tAct += dAct;
+                tBill += dBill;
+                tOver += dOver;
+                tLost += dLost;
+                tHc += dSch;
+                tAbs += dAbs;
+                tGranted += (baseD?.granted || 0);
+                tGrantedBill += (baseD?.grantedBill || 0);
+                let schHrs = dSch * 0.89;
+                let schPerc = dReq > 0 ? (schHrs / dReq) * 100 : 0;
+                
+                let ic = 100;
+                if (ref && ref.icPerc !== undefined) {
+                  ic = ref.icPerc;
+                } else if (baseD && baseD.intervals) {
+                  let passedIntervals = baseD.intervals.filter((i: any) => (i.req > 0 || i.act > 0) && (i.act >= i.req || i.bill >= i.req)).length;
+                  let activeIntervals = baseD.intervals.filter((i: any) => i.req > 0 || i.act > 0).length;
+                  if (activeIntervals > 0) ic = (passedIntervals / activeIntervals) * 100;
+                }
+
+                let ovPerc = dReq > 0 ? (dOver / dReq) * 100 : 0;
+                let absPerc = dSch > 0 ? (dAbs / dSch) * 100 : 0;
                 return (
                   <tr
                     key={dIso}
@@ -176,22 +186,22 @@ export default function ICLobDaysView({
                       {dIso}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] bg-surface-50 border-b border-surface-200 tabular-nums text-surface-900">
-                      {formatTimeSecs(d.req)}
+                      {formatTimeSecs(dReq)}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] border-b border-surface-200 tabular-nums text-surface-900">
-                      {formatTimeSecs(d.act)}
+                      {formatTimeSecs(dAct)}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] text-danger-600 dark:text-danger-400 border-b border-surface-200 tabular-nums">
-                      {formatPerc(absPerc)}
+                      {formatPerc(dAbsPerc)}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] text-danger-600 dark:text-danger-400 border-b border-surface-200 tabular-nums">
-                      {formatTimeSecs(d.abs)}
+                      {formatTimeSecs(dAbs)}
                     </td>{" "}
                     <td className={`px-2 py-3 font-semibold text-[13px] border-b border-surface-200 tabular-nums ${schPerc >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
                       {schPerc >= 0 ? '+' : ''}{formatPerc(schPerc)}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] text-surface-900 dark:text-surface-100 border-b border-surface-200 tabular-nums">
-                      {formatTimeSecs(d.bill)}
+                      {formatTimeSecs(dBill)}
                     </td>{" "}
                     <td
                       className={`px-2 py-3 font-semibold text-[13px] ${ic >= 100 ? "text-success-600 dark:text-success-400" : "text-danger-600 dark:text-danger-400"} border-b border-surface-200 tabular-nums`}
@@ -199,10 +209,10 @@ export default function ICLobDaysView({
                       {formatPerc(ic)}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] text-danger-600 dark:text-danger-400 border-b border-surface-200 tabular-nums">
-                      {formatTimeSecs(d.lost)}
+                      {formatTimeSecs(dLost)}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] text-success-600 dark:text-success-400 border-b border-surface-200 tabular-nums">
-                      {formatTimeSecs(d.over)}
+                      {formatTimeSecs(dOver)}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] text-success-600 dark:text-success-400 border-b border-surface-200 tabular-nums">
                       {formatPerc(ovPerc)}
@@ -225,30 +235,34 @@ export default function ICLobDaysView({
             })}
             {/* Total Row */}{" "}
             {(() => {
-              let netOver = 0,
-                netLost = 0;
-              if (tAct > tReq) {
-                netOver = tAct - tReq;
-                netLost = 0;
-              } else {
-                netLost = tReq - tAct;
-                netOver = 0;
-              }
-              let tSchHrs = tHc * 0.89;
-              let tAbsPerc = tHc > 0 ? (tAbs / tHc) * 100 : 0;
-              let tSchPerc = tReq > 0 ? (tSchHrs / tReq) * 100 : 0;
-              let tOvPerc = tReq > 0 ? (netOver / tReq) * 100 : 0;
-              
+              let netOver = tOver,
+                netLost = tLost;
               let tPassedIntervals = 0;
               let tTotalIntervals = 0;
+              let refDaysCount = 0;
+              let refIcSum = 0;
+              
               sortedDates.forEach((dIso) => {
-                const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
-                if (d && d.intervals) {
-                  tPassedIntervals += d.intervals.filter((i: any) => (i.req > 0 || i.act > 0) && (i.act >= i.req || i.bill >= i.req)).length;
-                  tTotalIntervals += d.intervals.filter((i: any) => i.req > 0 || i.act > 0).length;
+                const baseD = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
+                const ref = referenceData?.[lobId]?.[dIso];
+                if (ref && ref.icPerc !== undefined) {
+                  refIcSum += ref.icPerc;
+                  refDaysCount++;
+                } else if (baseD && baseD.intervals) {
+                  tPassedIntervals += baseD.intervals.filter((i: any) => (i.req > 0 || i.act > 0) && (i.act >= i.req || i.bill >= i.req)).length;
+                  tTotalIntervals += baseD.intervals.filter((i: any) => i.req > 0 || i.act > 0).length;
                 }
               });
-              let mIc = tTotalIntervals > 0 ? (tPassedIntervals / tTotalIntervals) * 100 : 100;
+              let tOvPerc = tReq > 0 ? (netOver / tReq) * 100 : 0;
+              let tSchHrs = tHc * 0.89;
+              let tSchPerc = tReq > 0 ? (tSchHrs / tReq) * 100 : 0;
+              let avgAbsPerc = tHc > 0 ? (tAbs / tHc) * 100 : 0;
+
+              let mIc = refDaysCount > 0 ? (refIcSum / refDaysCount) : (tTotalIntervals > 0 ? (tPassedIntervals / tTotalIntervals) * 100 : 100);
+              const refTotal = referenceData?.[lobId]?.['total'];
+              if (refTotal && refTotal.icPerc !== undefined) {
+                 mIc = refTotal.icPerc;
+              }
               return (
                 <tr className="bg-surface-100 font-semibold border-t-2 border-surface-300">
                   {" "}
@@ -262,7 +276,7 @@ export default function ICLobDaysView({
                     {formatTimeSecs(tAct)}
                   </td>{" "}
                   <td className="px-2 py-3 text-[13px] text-danger-600 dark:text-danger-400 tabular-nums">
-                    {formatPerc(tAbsPerc)}
+                    {formatPerc(avgAbsPerc)}
                   </td>{" "}
                   <td className="px-2 py-3 text-[13px] text-danger-600 dark:text-danger-400 tabular-nums">
                     {formatTimeSecs(tAbs)}

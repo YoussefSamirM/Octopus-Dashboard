@@ -47,6 +47,7 @@ export interface ProcessedLOB {
   lost: number;
   sch: number;
   abs: number;
+  absPerc: number;
   granted?: number;
   grantedBill?: number;
   intervals: ProcessedInterval[];
@@ -85,6 +86,12 @@ interface InvoiceState {
   processOfflineFiles: (startDate: string, endDate: string, reqFile: File, skillsFile: File, absFile: File, breaksFile: File | null, grantedFile: File | null) => Promise<void>;
   clearData: () => void;
   loadFromServer: () => Promise<void>;
+  
+  isLocalTestMode: boolean;
+  setLocalTestMode: (val: boolean) => void;
+  
+  referenceData: Record<string, Record<string, any>> | null;
+  setReferenceData: (data: Record<string, Record<string, any>> | null) => void;
 }
 
 const LOBs = [
@@ -152,6 +159,7 @@ function aggregateShift(intervals: any[], absStats: any): ProcessedLOB {
     lost: 0, 
     sch: absStats?.hc || 0, 
     abs: absStats?.abs || 0, 
+    absPerc: absStats?.absPerc || 0,
     granted: 0, 
     grantedBill: 0, 
     intervals: [] 
@@ -205,10 +213,12 @@ function aggregateShift(intervals: any[], absStats: any): ProcessedLOB {
 
 function combineLOBs(lobsData: ProcessedLOB[]): ProcessedLOB {
   let req=0, act=0, bill=0, over=0, lost=0, sch=0, abs=0, granted=0, grantedBill=0;
+  let totalAbsPercCount = 0, totalAbsPercSum = 0;
   let intervalsMap: Record<number, ProcessedInterval> = {};
 
   lobsData.forEach(l => {
     req += l.req; act += l.act; sch += l.sch; abs += l.abs; 
+    if (l.absPerc > 0) { totalAbsPercSum += l.absPerc; totalAbsPercCount++; }
     granted += (l.granted || 0); grantedBill += (l.grantedBill || 0);
     l.intervals.forEach(int => {
       if (!intervalsMap[int.sk]) {
@@ -263,8 +273,9 @@ function combineLOBs(lobsData: ProcessedLOB[]): ProcessedLOB {
   });
 
   if (act > req) { over = act - req; lost = 0; } else { lost = req - act; over = 0; }
+  let avgAbsPerc = totalAbsPercCount > 0 ? totalAbsPercSum / totalAbsPercCount : 0;
 
-  return { req, act, bill: totalCombinedBill, over, lost, sch, abs, granted, grantedBill, intervals: combinedIntervals };
+  return { req, act, bill: totalCombinedBill, over, lost, sch, abs, absPerc: avgAbsPerc, granted, grantedBill, intervals: combinedIntervals };
 }
 
 
@@ -429,6 +440,8 @@ export const useInvoiceStore = create<InvoiceState>()(
         date: null,
         sk: null,
       },
+      referenceData: null,
+      isLocalTestMode: false,
 
       setNavState: (navState) => set((state) => ({ navState: { ...state.navState, ...navState } })),
       setShiftMode: (mode) => set({ currentShiftMode: mode }),
@@ -448,7 +461,12 @@ export const useInvoiceStore = create<InvoiceState>()(
           date: null,
           sk: null,
         },
+        referenceData: null,
+        isLocalTestMode: false,
       }),
+
+      setLocalTestMode: (val) => set({ isLocalTestMode: val }),
+      setReferenceData: (data) => set({ referenceData: data }),
 
       loadFromServer: async () => {
         set({ isLoading: true, error: null });
@@ -479,6 +497,7 @@ export const useInvoiceStore = create<InvoiceState>()(
                     sortedDates: parsed.sortedDates || [],
                     agentInfo: parsed.agentInfo || {},
                     rawStatusParsed: parsed.rawStatusParsed || [],
+                    referenceData: parsed.referenceData || null,
                     isLoading: false 
                   });
                   return;
@@ -506,6 +525,7 @@ export const useInvoiceStore = create<InvoiceState>()(
              sortedDates: parsed.sortedDates || [],
              agentInfo: parsed.agentInfo || {},
              rawStatusParsed: parsed.rawStatusParsed || [],
+             referenceData: parsed.referenceData || null,
              isLoading: false 
            });
         } catch (e: any) {
@@ -717,16 +737,19 @@ export const useInvoiceStore = create<InvoiceState>()(
               if(matchedLob) {
                   let hcRaw = absDataRaw[r+1] ? absDataRaw[r+1][c] : 0;
                   let absRaw = absDataRaw[r+3] ? absDataRaw[r+3][c] : 0;
-                  let absPercRaw = absDataRaw[r+4] ? absDataRaw[r+4][c] : 0;
+                  
+                  // Ensure both HC and ABS are parsed using the same logic to preserve their ratio for ABS%
+                  let hcParsed = parseFloat(String(hcRaw)) || 0;
+                  if (hcParsed > 0 && hcParsed <= 1) hcParsed = hcParsed * 24 * 3600;
+                  else hcParsed = hcParsed * 3600;
 
-                  let absPercVal = 0;
-                  if (typeof absPercRaw === 'number') absPercVal = absPercRaw * 100;
-                  else absPercVal = parseFloat(String(absPercRaw).replace('%', ''));
+                  let absParsed = parseFloat(String(absRaw)) || 0;
+                  if (absParsed > 0 && absParsed <= 1) absParsed = absParsed * 24 * 3600;
+                  else absParsed = absParsed * 3600;
 
                   dailyAbsData[iso][matchedLob] = {
-                      hc: parseDurationSecs(hcRaw), 
-                      abs: parseDurationSecs(absRaw),
-                      absPerc: isNaN(absPercVal) ? 0 : absPercVal
+                      hc: hcParsed,
+                      abs: absParsed,
                   };
               }
           }

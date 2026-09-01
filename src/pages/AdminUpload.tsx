@@ -15,6 +15,7 @@ import { useAppStore } from "../stores/appStore";
 import { useDataStore } from "../stores/dataStore";
 import { supabase } from "../lib/supabase";
 import { parseChats, parseStatus } from "../services/calcLogic";
+import { parseReferenceExcel } from "../utils/referenceParser";
 
 export default function AdminUpload() {
   const [startDate, setStartDate] = useState(
@@ -39,8 +40,9 @@ export default function AdminUpload() {
   const breaksRef = useRef<HTMLInputElement>(null);
   const grantedRef = useRef<HTMLInputElement>(null);
   const chatsRef = useRef<HTMLInputElement>(null);
+  const refUploadRef = useRef<HTMLInputElement>(null);
 
-  const { parseStatusCSV, processOfflineFiles, isLoading, error } = useInvoiceStore();
+  const { parseStatusCSV, processOfflineFiles, isLoading, error, setReferenceData, setLocalTestMode } = useInvoiceStore();
   const token = useAppStore(s => s.token);
   const addToast = useAppStore(s => s.addToast);
 
@@ -82,6 +84,23 @@ export default function AdminUpload() {
     }
   };
 
+  const handleRefUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsPushing(true); // Reuse isPushing for loading state or just add local state
+    try {
+      const parsed = await parseReferenceExcel(file);
+      setReferenceData(parsed);
+      addToast({ message: "Accurate Reference Data Uploaded Successfully", type: 'success' });
+    } catch (err) {
+      console.error("Error parsing reference excel", err);
+      addToast({ message: "Failed to parse reference file. Please make sure it's the correct format.", type: 'error' });
+    } finally {
+      setIsPushing(false);
+      e.target.value = '';
+    }
+  };
+
   const handleProcessAndSync = async () => {
     if (!statusFile) return addToast({ message: "Please upload the Agent Status Log (CSV) first.", type: 'warning' });
     if (!reqFile) return addToast({ message: "Please upload the Master Sheet (REQ Excel).", type: 'warning' });
@@ -99,13 +118,17 @@ export default function AdminUpload() {
          throw new Error("Processing failed, no data generated.");
       }
 
+      // Exit local test mode since we are pushing
+      setLocalTestMode(false);
+
       // 3. Push to Supabase Storage
       setIsPushing(true);
       const jsonPayload = JSON.stringify({
            globalProcessedData: storeState.globalProcessedData,
            sortedDates: storeState.sortedDates,
            agentInfo: storeState.agentInfo,
-           rawStatusParsed: storeState.rawStatusParsed
+           rawStatusParsed: storeState.rawStatusParsed,
+           referenceData: storeState.referenceData
       });
 
       const { error: uploadError } = await supabase.storage
@@ -128,6 +151,7 @@ export default function AdminUpload() {
       setIsPushing(false);
     }
   };
+
 
   if (!isUnlocked) {
     return (
@@ -362,20 +386,46 @@ export default function AdminUpload() {
                 }}
               />
             </div>
+
+            {/* Reference Data Excel */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-surface-500">
+                7. Accurate Data (Excel)
+              </label>
+              <button
+                onClick={() => refUploadRef.current?.click()}
+                className={`flex items-center justify-center gap-2 h-10 px-4 border border-solid border-surface-200 bg-surface-50 text-surface-700 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded-md font-medium text-sm transition-colors truncate`}
+              >
+                <FileSpreadsheet size={16} />
+                <span className="truncate">
+                  Upload Accurate Data
+                </span>
+              </button>
+              <input
+                type="file"
+                accept=".xlsx, .xls"
+                className="hidden"
+                ref={refUploadRef}
+                onChange={handleRefUpload}
+              />
+            </div>
           </div>
           
-          <button
-            onClick={handleProcessAndSync}
-            disabled={isLoading || isPushing}
-            className="btn-primary h-10"
-          >
-            {(isLoading || isPushing) ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <UploadCloud size={16} />
-            )}
-            Process & Sync
-          </button>
+          <div className="flex items-center gap-3 mt-4 w-full justify-end sm:mt-0 sm:w-auto">
+
+            <button
+              onClick={handleProcessAndSync}
+              disabled={isLoading || isPushing}
+              className="btn-primary h-10"
+            >
+              {(isLoading || isPushing) ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UploadCloud size={16} />
+              )}
+              Process & Sync
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

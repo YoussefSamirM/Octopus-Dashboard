@@ -6,8 +6,9 @@ import ICDayDashboard from "../components/invoice/ICDayDashboard";
 import ICAgentDetailsView from "../components/invoice/ICAgentDetailsView";
 import ICAnalysisView from "../components/invoice/ICAnalysisView";
 import ViewSwitcher from "../components/common/ViewSwitcher";
-import { Receipt, Home, ChevronRight } from "lucide-react";
+import { Receipt, Home, ChevronRight, CheckCircle2, ToggleLeft } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { parseReferenceExcel } from "../utils/referenceParser";
 
 interface NavState {
   view: "home" | "lob" | "interval" | "agents" | "analysis";
@@ -24,11 +25,13 @@ const LOBs = [
 ];
 
 export default function ICView() {
-  const { globalProcessedData, loadFromServer, isLoading, navState, setNavState } = useInvoiceStore();
+  const { globalProcessedData, loadFromServer, isLoading, navState, setNavState, referenceData, isLocalTestMode, setLocalTestMode } = useInvoiceStore();
   const [viewMode, setViewMode] = useState<'overview' | 'details'>('details');
 
   useEffect(() => {
-    loadFromServer();
+    if (!isLocalTestMode) {
+      loadFromServer();
+    }
 
     const channel = supabase
       .channel('schema-db-changes')
@@ -37,7 +40,9 @@ export default function ICView() {
         { event: '*', schema: 'public', table: 'files' },
         (payload) => {
           console.log('Real-time data update received via Supabase:', payload);
-          loadFromServer();
+          if (!useInvoiceStore.getState().isLocalTestMode) {
+            loadFromServer();
+          }
         }
       )
       .subscribe();
@@ -143,20 +148,22 @@ export default function ICView() {
 
   return (
     <div className="max-w-[1550px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
+
       <div className="page-header mb-5 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
         <div>
-          <h1 className="page-title text-2xl font-semibold text-surface-900">
+          <h1 className="page-title text-2xl font-semibold text-surface-900 flex items-center gap-3">
             Talabat Invoice
           </h1>
           <p className="page-description text-surface-500 text-xs sm:text-sm mt-0.5">
             Tracking billable hours, overage, and headcount & ABS
           </p>
         </div>
-        {hasData && navState.view === "interval" && (
-          <div className="pb-2">
+        
+        <div className="flex items-center gap-3 pb-2">
+          {hasData && navState.view === "interval" && (
             <ViewSwitcher activeView={viewMode} onViewChange={setViewMode} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col relative w-full items-center justify-center">

@@ -137,9 +137,9 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Groups */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-4 hide-scrollbar">
+        <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-3 hide-scrollbar">
           {navSections.map((section, index) => (
-            <div key={section.title} className={`space-y-1 ${index !== navSections.length - 1 ? 'pb-4 border-b border-white/10 dark:border-surface-100/20' : ''}`}>
+            <div key={section.title} className={`space-y-0.5 ${index !== navSections.length - 1 ? 'pb-3 border-b border-white/10 dark:border-surface-100/20' : ''}`}>
               {!collapsed && (
                 <p className="text-[10px] font-bold tracking-wider text-brand-300/60 dark:text-surface-400 uppercase px-3 py-1 mb-0.5">
                   {section.title}
@@ -154,11 +154,11 @@ export default function Sidebar() {
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium outline-none ${
+                      className={`group relative flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm font-medium outline-none ${
                         isActive
                           ? 'bg-[#2b2b8c] dark:bg-brand-600 text-white font-semibold shadow-md'
                           : 'text-white/80 dark:text-surface-300 hover:text-white hover:bg-white/10 dark:hover:bg-surface-100/30'
-                      } ${collapsed ? 'justify-center px-0 h-10' : ''}`}
+                      } ${collapsed ? 'justify-center px-0 h-9' : ''}`}
                       title={collapsed ? item.label : undefined}
                     >
                       <Icon 

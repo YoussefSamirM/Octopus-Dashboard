@@ -7,12 +7,31 @@ const { googleAuthHandler } = require('./server/auth.cjs');
 const { requireAuth, optionalAuth } = require('./server/middleware.cjs');
 const { invoiceDataHandler } = require('./server/invoice.cjs');
 const { processWfmData } = require('./server/engine.cjs');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const hpp = require('hpp');
+const cors = require('cors');
 const app = express();
 
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
+// Security Middlewares
+app.use(helmet({
+  contentSecurityPolicy: false, // Don't block our own assets
+}));
+app.use(cors());
+
+// Global Rate Limiter
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Limit each IP to 500 requests per window
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+app.use(globalLimiter);
+
 app.use(express.json({ limit: "500mb" }));
 app.use(express.urlencoded({ limit: "500mb", extended: true }));
+app.use(hpp()); // Protect against HTTP Parameter Pollution
 
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -192,18 +211,23 @@ function formatHeaders(token) {
 // ==========================================
 // Google OAuth & Security
 // ==========================================
-app.post('/api/auth/google', googleAuthHandler);
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login requests per window
+  message: { error: 'Too many login attempts, please try again after 15 minutes' }
+});
+app.post('/api/auth/google', authLimiter, googleAuthHandler);
 
 // ---------------------------------------------------------
 // WFM API Routes
 // ---------------------------------------------------------
-app.post('/api/invoice-data', optionalAuth, invoiceDataHandler);
-app.post('/api/engine/process', optionalAuth, processWfmData);
+app.post('/api/invoice-data', requireAuth, invoiceDataHandler);
+app.post('/api/engine/process', requireAuth, processWfmData);
 
 // ---------------------------------------------------------
 // Data Admin Routes
 // ---------------------------------------------------------
-app.post('/api/upload-invoice-data', optionalAuth, (req, res) => {
+app.post('/api/upload-invoice-data', requireAuth, (req, res) => {
   try {
     const { globalProcessedData, sortedDates, agentInfo } = req.body;
     if (!globalProcessedData) return res.status(400).json({ error: 'Missing data' });
@@ -215,7 +239,7 @@ app.post('/api/upload-invoice-data', optionalAuth, (req, res) => {
   }
 });
 
-app.get('/api/invoice-data', optionalAuth, (req, res) => {
+app.get('/api/invoice-data', requireAuth, (req, res) => {
   try {
     const invoicePath = path.join(uploadDir, 'invoice_data.json');
     if (fs.existsSync(invoicePath)) {

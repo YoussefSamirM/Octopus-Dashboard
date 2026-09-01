@@ -86,10 +86,10 @@ const googleAuthHandler = async (req, res) => {
     const payload = await userInfoResponse.json();
     const email = payload.email.toLowerCase();
 
-    // 2. Strict Domain Check [TEMPORARILY DISABLED]
-    // if (!email.endsWith('@talabat.com')) {
-    //   return res.status(401).json({ error: 'Unauthorized domain. Only @talabat.com is allowed.' });
-    // }
+    // 2. Strict Domain Check (ENFORCED FOR SECURITY)
+    if (!email.endsWith('@talabat.com')) {
+      return res.status(401).json({ error: 'Unauthorized domain. Only @talabat.com is allowed.' });
+    }
 
     // 3. Google Sheets Whitelist Check [TEMPORARILY DISABLED]
     // const isWhitelisted = await checkEmailInWhitelist(email);
