@@ -66,21 +66,31 @@ export default function ICMultiDayView({ onSelectLob }: ICMultiDayViewProps) {
           {LOBs.map((lob) => {
             let lReq = 0,
               lAct = 0,
-              lBill = 0;
+              lBill = 0,
+              lGranted = 0,
+              lGrantedBill = 0,
+              passedIntervals = 0,
+              totalIntervals = 0;
             filteredDates.forEach((dIso) => {
               const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lob.id];
               if (d) {
                 lReq += d.req;
                 lAct += d.act;
                 lBill += d.bill;
+                lGranted += (d.granted || 0);
+                lGrantedBill += (d.grantedBill || 0);
+                if (d.intervals) {
+                  passedIntervals += d.intervals.filter((i: any) => (i.req > 0 || i.act > 0) && (i.act >= i.req || i.bill >= i.req)).length;
+                  totalIntervals += d.intervals.filter((i: any) => i.req > 0 || i.act > 0).length;
+                }
               }
             });
-            const ic = lReq === 0 ? 100 : (lBill / lReq) * 100;
+            const ic = totalIntervals === 0 ? 100 : (passedIntervals / totalIntervals) * 100;
             return (
               <div
                 key={lob.id}
                 onClick={() => onSelectLob(lob.id)}
-                className="card p-6 cursor-pointer group hover:-translate-y-1 hover:shadow-md transition-all duration-300"
+                className="card p-5 cursor-pointer hover:border-brand-400 dark:hover:border-brand-500 hover:bg-brand-50/30 dark:hover:bg-surface-100/20 shadow-xs group"
               >
                 {" "}
                 <h3 className="text-xl font-semibold mb-5 text-surface-900 flex justify-between items-center">
@@ -88,7 +98,7 @@ export default function ICMultiDayView({ onSelectLob }: ICMultiDayViewProps) {
                   {lob.title}{" "}
                   <ArrowRight
                     size={16}
-                    className="text-surface-400 group-hover:text-brand-600 transition-colors"
+                    className="text-surface-400 group-hover:text-brand-600"
                   />{" "}
                 </h3>{" "}
                 <div className="flex justify-between items-center py-3 border-b border-surface-200">

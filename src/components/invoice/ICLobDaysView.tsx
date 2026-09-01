@@ -39,7 +39,9 @@ export default function ICLobDaysView({
     tOver = 0,
     tLost = 0,
     tHc = 0,
-    tAbs = 0;
+    tAbs = 0,
+    tGranted = 0,
+    tGrantedBill = 0;
 
   const chartData = sortedDates.map(dIso => {
     const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
@@ -54,6 +56,8 @@ export default function ICLobDaysView({
       tLost += d.lost;
       tHc += d.sch;
       tAbs += d.abs;
+      tGranted += (d.granted || 0);
+      tGrantedBill += (d.grantedBill || 0);
     }
     
     return {
@@ -67,7 +71,7 @@ export default function ICLobDaysView({
   // Actually, wait, let's just use the totals we just calculated for the Details view summary row as well.
   // The Details view does its own loop, so we should reset them if we want the Details view to calculate it again,
   // OR we just remove the calculation from the Details view loop. Let's just reset them for safety.
-  tReq = 0; tAct = 0; tBill = 0; tOver = 0; tLost = 0; tHc = 0; tAbs = 0;
+  tReq = 0; tAct = 0; tBill = 0; tOver = 0; tLost = 0; tHc = 0; tAbs = 0; tGranted = 0; tGrantedBill = 0;
 
   // Let's recalculate for Overview since the chartData loop resets them below anyway
   chartData.forEach((d: any) => {
@@ -75,26 +79,32 @@ export default function ICLobDaysView({
   });
   
   // A cleaner approach: calculate totals once.
-  let overviewReq = 0, overviewAct = 0, overviewBill = 0;
+  let overviewReq = 0, overviewAct = 0, overviewBill = 0, overviewGranted = 0, overviewGrantedBill = 0;
   sortedDates.forEach(dIso => {
     const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
     if (d && (d.req > 0 || d.act > 0 || d.sch > 0)) {
       overviewReq += d.req;
       overviewAct += d.act;
       overviewBill += d.bill;
+      overviewGranted += (d.granted || 0);
+      overviewGrantedBill += (d.grantedBill || 0);
     }
   });
 
   return (
-    <div className="max-w-[1550px] mx-auto w-full animate-in fade-in duration-300">
-      {" "}
-      <h2 className="text-2xl font-semibold text-surface-900 mb-6">
-        {lobConf.title} Breakdown
-      </h2>{" "}
-      <div className="card overflow-hidden mb-8 w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="min-w-full inline-block align-middle">
+    <div className="max-w-[1550px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
+      <div className="page-header mb-5">
+        <h1 className="page-title text-2xl font-semibold text-surface-900">
+          {lobConf.title} Breakdown
+        </h1>
+        <p className="page-description text-surface-500 text-xs sm:text-sm mt-0.5">
+          Daily performance and interval compliance history.
+        </p>
+      </div>
+      <div className="card mb-6 shadow-xs">
+        <div className="w-full overflow-x-auto">
           <table className="min-w-full border-collapse text-left whitespace-nowrap">
-            <thead className="glass-header">
+            <thead className="bg-surface-50 sticky top-0 z-10">
             <tr>
               {" "}
               <th className="font-semibold text-[11px] text-surface-500 px-2 py-3 border-b border-surface-200">
@@ -147,9 +157,13 @@ export default function ICLobDaysView({
                 tLost += d.lost;
                 tHc += d.sch;
                 tAbs += d.abs;
+                tGranted += (d.granted || 0);
+                tGrantedBill += (d.grantedBill || 0);
                 let schHrs = d.sch * 0.89;
                 let schPerc = d.req > 0 ? (schHrs / d.req) * 100 : 0;
-                let ic = d.req === 0 ? 100 : (d.bill / d.req) * 100;
+                let passedIntervals = d.intervals ? d.intervals.filter((i: any) => (i.req > 0 || i.act > 0) && (i.act >= i.req || i.bill >= i.req)).length : 0;
+                let activeIntervals = d.intervals ? d.intervals.filter((i: any) => i.req > 0 || i.act > 0).length : 0;
+                let ic = activeIntervals > 0 ? (passedIntervals / activeIntervals) * 100 : 100;
                 let ovPerc = d.req > 0 ? (d.over / d.req) * 100 : 0;
                 let absPerc = d.sch > 0 ? (d.abs / d.sch) * 100 : 0;
                 return (
@@ -176,7 +190,7 @@ export default function ICLobDaysView({
                     <td className={`px-2 py-3 font-semibold text-[13px] border-b border-surface-200 tabular-nums ${schPerc >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
                       {schPerc >= 0 ? '+' : ''}{formatPerc(schPerc)}
                     </td>{" "}
-                    <td className="px-2 py-3 font-semibold text-[13px] text-brand-600 dark:text-brand-400 border-b border-surface-200 tabular-nums">
+                    <td className="px-2 py-3 font-semibold text-[13px] text-surface-900 dark:text-surface-100 border-b border-surface-200 tabular-nums">
                       {formatTimeSecs(d.bill)}
                     </td>{" "}
                     <td
@@ -224,7 +238,17 @@ export default function ICLobDaysView({
               let tAbsPerc = tHc > 0 ? (tAbs / tHc) * 100 : 0;
               let tSchPerc = tReq > 0 ? (tSchHrs / tReq) * 100 : 0;
               let tOvPerc = tReq > 0 ? (netOver / tReq) * 100 : 0;
-              let mIc = tReq === 0 ? 100 : (tBill / tReq) * 100;
+              
+              let tPassedIntervals = 0;
+              let tTotalIntervals = 0;
+              sortedDates.forEach((dIso) => {
+                const d = globalProcessedData[dIso]?.[currentShiftMode]?.[lobId];
+                if (d && d.intervals) {
+                  tPassedIntervals += d.intervals.filter((i: any) => (i.req > 0 || i.act > 0) && (i.act >= i.req || i.bill >= i.req)).length;
+                  tTotalIntervals += d.intervals.filter((i: any) => i.req > 0 || i.act > 0).length;
+                }
+              });
+              let mIc = tTotalIntervals > 0 ? (tPassedIntervals / tTotalIntervals) * 100 : 100;
               return (
                 <tr className="bg-surface-100 font-semibold border-t-2 border-surface-300">
                   {" "}
@@ -246,7 +270,7 @@ export default function ICLobDaysView({
                   <td className="px-2 py-3 text-[13px] text-surface-500 tabular-nums">
                     {formatPerc(tSchPerc)}
                   </td>{" "}
-                  <td className="px-2 py-3 text-[13px] text-brand-600 dark:text-brand-400 tabular-nums">
+                  <td className="px-2 py-3 text-[13px] text-surface-900 tabular-nums">
                     {formatTimeSecs(tBill)}
                   </td>{" "}
                   <td

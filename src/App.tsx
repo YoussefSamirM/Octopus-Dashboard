@@ -26,6 +26,7 @@ import type { TabId } from '@/types';
 import { Radar, Menu } from 'lucide-react';
 
 import GSAPPageTransition from '@/components/common/GSAPPageTransition';
+import ChatbotWidget from '@/components/common/ChatbotWidget';
 
 const pageComponents: Record<TabId, React.ComponentType> = {
   dashboard: Dashboard,
@@ -45,6 +46,9 @@ const pageComponents: Record<TabId, React.ComponentType> = {
 export default function App() {
   const activeTab = useAppStore((s) => s.activeTab);
   const isAppLoggedIn = useAppStore((s) => s.isAppLoggedIn);
+  const loginTimestamp = useAppStore((s) => s.loginTimestamp);
+  const logoutApp = useAppStore((s) => s.logoutApp);
+  const addToast = useAppStore((s) => s.addToast);
   const darkMode = useAppStore((s) => s.darkMode);
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const ActivePage = pageComponents[activeTab] || Dashboard;
@@ -63,6 +67,29 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
   }, [darkMode]);
+
+  // Handle 3-hour session expiration
+  useEffect(() => {
+    if (isAppLoggedIn && loginTimestamp) {
+      const SESSION_DURATION = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+      const timeElapsed = Date.now() - loginTimestamp;
+      
+      if (timeElapsed >= SESSION_DURATION) {
+        // Session already expired
+        logoutApp();
+        addToast({ message: 'Your session has expired. Please log in again.', type: 'info' });
+      } else {
+        // Set a timer for the remaining time
+        const timeRemaining = SESSION_DURATION - timeElapsed;
+        const timerId = setTimeout(() => {
+          logoutApp();
+          addToast({ message: 'Your session has expired. Please log in again.', type: 'info' });
+        }, timeRemaining);
+        
+        return () => clearTimeout(timerId);
+      }
+    }
+  }, [isAppLoggedIn, loginTimestamp, logoutApp, addToast]);
 
   useLayoutEffect(() => {
     if (!isAppLoggedIn) return;
@@ -143,15 +170,11 @@ export default function App() {
             <div className="hidden sm:block h-3 w-[1px] bg-surface-300 dark:bg-white/20" />
             <p className="text-[10px] text-surface-400">&copy; {new Date().getFullYear()}. All rights reserved. Confidential & Proprietary.</p>
           </div>
-          
-          <div className="text-[10px] sm:text-[11px] text-surface-500 font-medium tracking-wide flex items-center gap-1.5">
-            <span className="text-surface-400">Designed and Developed by</span>
-            <span className="font-semibold text-brand-600">Yousef Samir</span>
-          </div>
         </footer>
       </main>
 
         <ToastContainer />
+        <ChatbotWidget />
       </div>
     </>
   );

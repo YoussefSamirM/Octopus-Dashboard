@@ -18,10 +18,12 @@ export default function ICEmptyState() {
   const [reqFile, setReqFile] = useState<File | null>(null);
   const [skillsFile, setSkillsFile] = useState<File | null>(null);
   const [absFile, setAbsFile] = useState<File | null>(null);
+  const [breaksFile, setBreaksFile] = useState<File | null>(null);
   const statusRef = useRef<HTMLInputElement>(null);
   const reqRef = useRef<HTMLInputElement>(null);
   const skillsRef = useRef<HTMLInputElement>(null);
   const absRef = useRef<HTMLInputElement>(null);
+  const breaksRef = useRef<HTMLInputElement>(null);
   const { parseStatusCSV, processOfflineFiles, isLoading, error } =
     useInvoiceStore();
   const handleStatusUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,7 +45,7 @@ export default function ICEmptyState() {
     if (!skillsFile) return alert("Please upload the Skills Matrix (Excel).");
     if (!absFile) return alert("Please upload the ABS Data (Excel).");
     if (!startDate) return alert("Please select a Start Date.");
-    await processOfflineFiles(startDate, endDate, reqFile, skillsFile, absFile);
+    await processOfflineFiles(startDate, endDate, reqFile, skillsFile, absFile, breaksFile, null);
   };
   return (
     <div className="max-w-[1550px] mx-auto w-full animate-in fade-in duration-300">
@@ -149,26 +151,24 @@ export default function ICEmptyState() {
               }}
             />{" "}
           </div>{" "}
-          {/* ABS Data Excel */}{" "}
+          {/* ABS Data Excel */}
           <div className="flex flex-col gap-2">
-            {" "}
             <label className="text-xs font-semibold text-surface-500">
               4. ABS Data (Excel)
-            </label>{" "}
+            </label>
             <button
               onClick={() => absRef.current?.click()}
               className={`flex items-center justify-center gap-2 h-10 px-4 border ${absFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-solid border-surface-200 bg-surface-50 text-surface-700 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-md font-medium text-sm transition-colors truncate`}
             >
-              {" "}
               {absFile ? (
                 <CheckCircle2 size={16} />
               ) : (
                 <FileSpreadsheet size={16} />
-              )}{" "}
+              )}
               <span className="truncate">
                 {absFile ? absFile.name : "Upload ABS Sheet"}
-              </span>{" "}
-            </button>{" "}
+              </span>
+            </button>
             <input
               type="file"
               accept=".xlsx, .xls"
@@ -178,9 +178,39 @@ export default function ICEmptyState() {
                 if (e.target.files && e.target.files.length > 0)
                   setAbsFile(e.target.files[0]);
               }}
-            />{" "}
-          </div>{" "}
-        </div>{" "}
+            />
+          </div>
+
+          {/* Breaks Report Excel */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-surface-500">
+              5. Breaks Report (Excel)
+            </label>
+            <button
+              onClick={() => breaksRef.current?.click()}
+              className={`flex items-center justify-center gap-2 h-10 px-4 border ${breaksFile ? "border-solid border-success-600 dark:border-success-500 bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400" : "border-solid border-surface-200 bg-surface-50 text-surface-700 hover:border-brand-600 dark:hover:border-brand-500 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20"} rounded-md font-medium text-sm transition-colors truncate`}
+            >
+              {breaksFile ? (
+                <CheckCircle2 size={16} />
+              ) : (
+                <FileSpreadsheet size={16} />
+              )}
+              <span className="truncate">
+                {breaksFile ? breaksFile.name : "Upload Breaks Report"}
+              </span>
+            </button>
+            <input
+              type="file"
+              accept=".xlsx, .xls, .csv"
+              className="hidden"
+              ref={breaksRef}
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0)
+                  setBreaksFile(e.target.files[0]);
+              }}
+            />
+          </div>
+        </div>
         {/* Footer */}{" "}
         <div className="flex flex-wrap items-end justify-between pt-4 border-t border-surface-200 mt-2">
           {" "}

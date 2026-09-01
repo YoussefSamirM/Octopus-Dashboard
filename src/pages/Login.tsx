@@ -159,7 +159,7 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'admin' && password === 'rtm-team-2026') {
+    if (username === 'admin' && password === '134679WFM@') {
       setError('');
       // Small success animation before logging in
       gsap.to(leftSideRef.current, { opacity: 0, scale: 0.98, duration: 0.4, ease: 'power2.inOut', onComplete: loginApp });
@@ -279,11 +279,10 @@ export default function Login() {
                 </div>
               </div>
 
-              <button type="submit" className="gsap-stagger-item w-full btn-primary h-11 text-sm shadow-md shadow-brand-500/20 group relative overflow-hidden rounded-lg transition-transform hover:-translate-y-0.5 active:translate-y-0">
-                <span className="relative z-10 flex items-center justify-center gap-2 font-semibold tracking-wide">
-                  Sign In <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              <button type="submit" className="gsap-stagger-item w-full btn-primary h-11 text-sm rounded-lg">
+                <span className="flex items-center justify-center gap-2 font-semibold">
+                  Sign In <ArrowRight size={16} />
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-brand-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </button>
             </form>
 
@@ -295,9 +294,9 @@ export default function Login() {
 
             <button 
               onClick={() => loginWithGoogle()}
-              className="gsap-stagger-item w-full bg-surface-0 dark:bg-surface-0/40 dark:backdrop-blur-xl border border-surface-200 dark:border-white/10 text-surface-700 dark:text-white h-12 text-sm shadow-sm hover:bg-surface-50 dark:hover:bg-surface-0/60 transition-all flex items-center justify-center gap-3 font-semibold rounded-lg group relative overflow-hidden"
+              className="gsap-stagger-item w-full bg-surface-0 border border-surface-200 text-surface-700 h-11 text-sm shadow-xs hover:bg-surface-50 transition-colors flex items-center justify-center gap-3 font-semibold rounded-lg"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>

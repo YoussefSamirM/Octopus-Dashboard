@@ -4,21 +4,25 @@ import ICMultiDayView from "../components/invoice/ICMultiDayView";
 import ICLobDaysView from "../components/invoice/ICLobDaysView";
 import ICDayDashboard from "../components/invoice/ICDayDashboard";
 import ICAgentDetailsView from "../components/invoice/ICAgentDetailsView";
+import ICAnalysisView from "../components/invoice/ICAnalysisView";
 import ViewSwitcher from "../components/common/ViewSwitcher";
 import { Receipt, Home, ChevronRight } from "lucide-react";
 import { supabase } from "../lib/supabase";
+
 interface NavState {
-  view: "home" | "lob" | "interval" | "agents";
+  view: "home" | "lob" | "interval" | "agents" | "analysis";
   lobId: string | null;
   date: string | null;
   sk: number | null;
 }
+
 const LOBs = [
   { id: "Combined", title: "Combined" },
   { id: "TPro", title: "T-Pro" },
   { id: "GHC", title: "GHC" },
   { id: "TMart-FU", title: "T-Mart Follow Up" },
 ];
+
 export default function ICView() {
   const { globalProcessedData, loadFromServer, isLoading, navState, setNavState } = useInvoiceStore();
   const [viewMode, setViewMode] = useState<'overview' | 'details'>('details');
@@ -44,6 +48,7 @@ export default function ICView() {
   }, []);
 
   const hasData = Object.keys(globalProcessedData).length > 0;
+
   const navigateTo = (
     view: NavState["view"],
     lobId: string | null = null,
@@ -52,88 +57,98 @@ export default function ICView() {
   ) => {
     setNavState({ view, lobId, date, sk });
   };
+
   const getLobTitle = (id: string | null) =>
     LOBs.find((l) => l.id === id)?.title || id;
+
   const renderBreadcrumbs = () => {
     if (navState.view === "home") return null;
     return (
-      <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-surface-500 mb-6 px-4 py-3 sm:px-6 sm:py-4 bg-surface-0 rounded-md border border-surface-200 w-full max-w-[1550px] mx-auto shadow-sm">
-        {" "}
+      <div className="card px-4 py-3 mb-5 flex flex-wrap items-center gap-2.5 text-sm font-medium text-surface-500 w-full shadow-xs">
         <div
           onClick={() => navigateTo("home")}
           className="flex items-center gap-2 cursor-pointer hover:text-brand-600 transition-colors"
         >
-          {" "}
-          <Home size={16} /> Overview{" "}
-        </div>{" "}
+          <Home size={15} /> Overview
+        </div>
+
         {navState.lobId &&
           (navState.view === "lob" ||
             navState.view === "interval" ||
-            navState.view === "agents") && (
+            navState.view === "agents" ||
+            navState.view === "analysis") && (
             <>
-              {" "}
-              <div className="text-surface-300">
+              <div className="text-surface-300 dark:text-surface-600">
                 <ChevronRight size={14} />
-              </div>{" "}
+              </div>
               <div
                 onClick={() =>
                   navState.view !== "lob"
                     ? navigateTo("lob", navState.lobId)
                     : undefined
                 }
-                className={`flex items-center gap-2 transition-colors ${navState.view === "lob" ? "text-surface-900 cursor-default" : "cursor-pointer hover:text-brand-600"}`}
+                className={`flex items-center gap-2 transition-colors ${navState.view === "lob" ? "text-surface-900 dark:text-white font-semibold cursor-default" : "cursor-pointer hover:text-brand-600"}`}
               >
-                {" "}
                 {getLobTitle(navState.lobId)}{" "}
-                {navState.view === "lob" ? "Days" : ""}{" "}
-              </div>{" "}
+                {navState.view === "lob" ? "Days" : ""}
+              </div>
             </>
-          )}{" "}
+          )}
+
         {navState.date &&
-          (navState.view === "interval" || navState.view === "agents") && (
+          (navState.view === "interval" || navState.view === "agents" || navState.view === "analysis") && (
             <>
-              {" "}
-              <div className="text-surface-300">
+              <div className="text-surface-300 dark:text-surface-600">
                 <ChevronRight size={14} />
-              </div>{" "}
+              </div>
               <div
                 onClick={() =>
                   navState.view !== "interval"
                     ? navigateTo("interval", navState.lobId, navState.date)
                     : undefined
                 }
-                className={`flex items-center gap-2 transition-colors ${navState.view === "interval" ? "text-surface-900 cursor-default" : "cursor-pointer hover:text-brand-600"}`}
+                className={`flex items-center gap-2 transition-colors ${navState.view === "interval" ? "text-surface-900 dark:text-white font-semibold cursor-default" : "cursor-pointer hover:text-brand-600"}`}
               >
-                {" "}
-                {navState.date}{" "}
-              </div>{" "}
+                {navState.date}
+              </div>
             </>
-          )}{" "}
+          )}
+
         {navState.sk !== null && navState.view === "agents" && (
           <>
-            {" "}
-            <div className="text-surface-300">
+            <div className="text-surface-300 dark:text-surface-600">
               <ChevronRight size={14} />
-            </div>{" "}
-            <div className="flex items-center gap-2 text-surface-900 cursor-default transition-colors">
-              {" "}
+            </div>
+            <div className="flex items-center gap-2 text-surface-900 dark:text-white font-semibold cursor-default transition-colors font-mono">
               {Math.floor(navState.sk / 60)}:
-              {navState.sk % 60 === 0 ? "00" : "30"} Details{" "}
-            </div>{" "}
+              {navState.sk % 60 === 0 ? "00" : "30"} Details
+            </div>
           </>
-        )}{" "}
+        )}
+
+        {navState.sk !== null && navState.view === "analysis" && (
+          <>
+            <div className="text-surface-300 dark:text-surface-600">
+              <ChevronRight size={14} />
+            </div>
+            <div className="flex items-center gap-2 text-surface-900 dark:text-white font-semibold cursor-default transition-colors font-mono">
+              {Math.floor(navState.sk / 60)}:
+              {navState.sk % 60 === 0 ? "00" : "30"} IC Failure
+            </div>
+          </>
+        )}
       </div>
     );
   };
+
   return (
-    <div className="max-w-[1600px] mx-auto pb-20 px-3 sm:px-6 h-full flex flex-col">
-      {" "}
-      <div className="page-header flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className="max-w-[1550px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
+      <div className="page-header mb-5 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
         <div>
-          <h1 className="page-title flex items-center gap-2">
+          <h1 className="page-title text-2xl font-semibold text-surface-900">
             Talabat Invoice
           </h1>
-          <p className="text-surface-500 text-sm mt-1">
+          <p className="page-description text-surface-500 text-xs sm:text-sm mt-0.5">
             Tracking billable hours, overage, and headcount & ABS
           </p>
         </div>
@@ -142,7 +157,8 @@ export default function ICView() {
             <ViewSwitcher activeView={viewMode} onViewChange={setViewMode} />
           </div>
         )}
-      </div>{" "}
+      </div>
+
       <div className="flex-1 flex flex-col relative w-full items-center justify-center">
         {!hasData ? (
           isLoading ? (
@@ -181,11 +197,12 @@ export default function ICView() {
           )
         ) : (
           <div className="w-full">
-            {" "}
-            {renderBreadcrumbs()}{" "}
+            {renderBreadcrumbs()}
+            
             {navState.view === "home" && (
               <ICMultiDayView onSelectLob={(lob) => navigateTo("lob", lob)} />
-            )}{" "}
+            )}
+
             {navState.view === "lob" && navState.lobId && (
               <ICLobDaysView
                 lobId={navState.lobId}
@@ -193,7 +210,8 @@ export default function ICView() {
                   navigateTo("interval", navState.lobId, date)
                 }
               />
-            )}{" "}
+            )}
+
             {navState.view === "interval" &&
               navState.lobId &&
               navState.date && (
@@ -204,8 +222,12 @@ export default function ICView() {
                   onViewAgentDetails={(sk) =>
                     navigateTo("agents", navState.lobId, navState.date, sk)
                   }
+                  onViewAnalysis={(sk) =>
+                    navigateTo("analysis", navState.lobId, navState.date, sk)
+                  }
                 />
-              )}{" "}
+              )}
+
             {navState.view === "agents" &&
               navState.lobId &&
               navState.date &&
@@ -215,10 +237,21 @@ export default function ICView() {
                   lobId={navState.lobId}
                   sk={navState.sk}
                 />
-              )}{" "}
+              )}
+
+            {navState.view === "analysis" &&
+              navState.lobId &&
+              navState.date &&
+              navState.sk !== null && (
+                <ICAnalysisView
+                  iso={navState.date}
+                  lobId={navState.lobId}
+                  sk={navState.sk}
+                />
+              )}
           </div>
-        )}{" "}
-      </div>{" "}
+        )}
+      </div>
     </div>
   );
 }

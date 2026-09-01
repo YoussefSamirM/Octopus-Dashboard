@@ -9,6 +9,7 @@ import type { TabId, Toast } from '@/types';
 interface AppState {
   // App Auth
   isAppLoggedIn: boolean;
+  loginTimestamp: number | null;
   loginApp: () => void;
   logoutApp: () => void;
 
@@ -53,8 +54,9 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       // App Auth
       isAppLoggedIn: false,
-      loginApp: () => set({ isAppLoggedIn: true, activeTab: 'dashboard' }),
-      logoutApp: () => set({ isAppLoggedIn: false, token: '', isAuthenticated: false, activeTab: 'dashboard' }),
+      loginTimestamp: null,
+      loginApp: () => set({ isAppLoggedIn: true, loginTimestamp: Date.now(), activeTab: 'dashboard' }),
+      logoutApp: () => set({ isAppLoggedIn: false, loginTimestamp: null, token: '', isAuthenticated: false, activeTab: 'dashboard' }),
 
       // Calabrio Auth
       token: '',
@@ -110,6 +112,7 @@ export const useAppStore = create<AppState>()(
       name: 'wfm-platform-state',
       partialize: (state) => ({
         isAppLoggedIn: state.isAppLoggedIn,
+        loginTimestamp: state.loginTimestamp,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
         sidebarCollapsed: state.sidebarCollapsed,

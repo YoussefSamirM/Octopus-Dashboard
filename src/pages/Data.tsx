@@ -52,15 +52,15 @@ function getAHTColor(aht: number) {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white/90 dark:bg-[#0a0f1e]/95 backdrop-blur-md border border-surface-200/60 dark:border-brand-900/20/60 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-4 text-xs z-50">
-      <p className="font-bold text-surface-800 dark:text-surface-200 mb-3 border-b border-surface-100 dark:border-brand-900/20 pb-2">{label}</p>
+    <div className="bg-surface-0 border border-surface-200 rounded-lg shadow-xs p-3 text-xs z-50">
+      <p className="font-semibold text-surface-900 mb-2 border-b border-surface-100 pb-1.5">{label}</p>
       {payload.map((p: any, i: number) => (
-        <div key={i} className="flex items-center justify-between gap-6 mb-1.5 last:mb-0">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ background: p.color }} />
+        <div key={i} className="flex items-center justify-between gap-5 mb-1 last:mb-0">
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full" style={{ background: p.color }} />
             <span className="text-surface-500 font-medium">{p.name}</span>
           </div>
-          <span className="font-bold text-surface-900">
+          <span className="font-semibold text-surface-900">
             {typeof p.value === 'number' ? p.value.toFixed(2).replace(/\.00$/, '') : p.value}
           </span>
         </div>
@@ -75,13 +75,13 @@ const containerVariants = {
   show: { transition: { staggerChildren: 0.08 } }
 };
 const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } }
+  hidden: { opacity: 0, y: 16 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } }
 };
 
 // ─── TABLE ROW VARIANT ───
 const rowVariants = {
-  hidden: { opacity: 0, x: -16 },
+  hidden: { opacity: 0, x: -10 },
   show:   { opacity: 1, x: 0 }
 };
 
@@ -102,9 +102,9 @@ export default function Data() {
   const [cphResult, setCphResult] = useState<CPHResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // ─── PROCESS DATA ───
+  // ─── PROCESS CALCULATIONS ───
   useEffect(() => {
-    if (rawChats.length === 0) return;
+    if (!rawChats || rawChats.length === 0) return;
     setIsProcessing(true);
     const timer = setTimeout(() => {
       const bStart = boundsStart ? new Date(boundsStart).getTime() : null;
@@ -130,31 +130,31 @@ export default function Data() {
     rowRenderer: (row: any, i: number) => React.ReactNode,
     footer?: React.ReactNode
   ) => (
-    <div className="overflow-x-auto max-h-[380px] overflow-y-auto border border-surface-200 rounded-lg">
+    <div className="overflow-x-auto max-h-[380px] overflow-y-auto border border-surface-200 rounded-xl">
       <table className="w-full text-left border-collapse">
-        <thead className="bg-surface-50 dark:bg-[#060b18] sticky top-0 z-10 shadow-[0_1px_0_#e2e8f0] dark:shadow-none">
+        <thead className="bg-surface-50 sticky top-0 z-10">
           <tr>
             {headers.map((h, i) => (
-              <th key={i} className="px-4 py-2.5 text-xs font-semibold text-surface-500 uppercase tracking-wider">{h}</th>
+              <th key={i} className="px-3.5 py-2.5 text-xs font-semibold text-surface-500 uppercase tracking-wider">{h}</th>
             ))}
           </tr>
         </thead>
         <motion.tbody
-          className="divide-y divide-surface-100 dark:divide-brand-900/15 bg-white dark:bg-[#0a0f1e]"
+          className="divide-y divide-surface-100 bg-surface-0"
           variants={containerVariants}
           initial="hidden"
           animate="show"
         >
           {rows.length > 0 ? rows.map((row, i) => (
-            <motion.tr key={i} variants={rowVariants} transition={{ duration: 0.25, delay: i * 0.02 }} className="hover:bg-brand-50/40 transition-colors">
+            <motion.tr key={i} variants={rowVariants} transition={{ duration: 0.2, delay: i * 0.01 }} className="hover:bg-brand-50/30 transition-colors">
               {rowRenderer(row, i) as any}
             </motion.tr>
           )) : (
-            <tr><td colSpan={headers.length} className="px-4 py-8 text-center text-sm text-surface-400">No data available</td></tr>
+            <tr><td colSpan={headers.length} className="px-4 py-8 text-center text-xs text-surface-400">No data available</td></tr>
           )}
         </motion.tbody>
         {footer && (
-          <tfoot className="bg-surface-50 dark:bg-[#060b18] sticky bottom-0 z-10 shadow-[0_-1px_0_#e2e8f0] dark:shadow-none font-semibold text-surface-700 dark:text-surface-300">
+          <tfoot className="bg-surface-50 sticky bottom-0 z-10 font-semibold text-surface-700">
             {footer}
           </tfoot>
         )}
@@ -164,68 +164,65 @@ export default function Data() {
 
   // ─── KPI CARD ───
   const KPICard = ({ label, value, decimals = 0, suffix = '', icon: Icon, color = 'brand' }: any) => (
-    <motion.div variants={itemVariants} className="card p-5 flex flex-col gap-2">
+    <motion.div variants={itemVariants} className="card p-4 sm:p-5 flex flex-col gap-2 shadow-xs">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-surface-500 uppercase tracking-wider">{label}</span>
-        <div className={`w-8 h-8 rounded-lg bg-${color}-100 flex items-center justify-center`}>
-          <Icon size={16} className={`text-${color}-600`} />
+        <div className={`w-7 h-7 rounded-lg bg-${color}-50 text-${color}-600 flex items-center justify-center`}>
+          <Icon size={15} />
         </div>
       </div>
-      <p className={`text-3xl font-bold text-${color}-600`}>
+      <p className="text-2xl font-semibold text-surface-900">
         <AnimatedNumber value={value} decimals={decimals} suffix={suffix} />
       </p>
     </motion.div>
   );
 
   // ─── METRIC KPI (with target/status badge) ───
-  const MetricKPICard = ({ label, value, decimals = 1, suffix = '%', icon: Icon, low, high, targetLabel, invert = false }: any) => {
-    // invert=true means lower is better (not used for current metrics)
+  const MetricKPICard = ({ label, value, decimals = 1, suffix = '%', icon: Icon, low, high, targetLabel }: any) => {
     let status: 'good' | 'warn' | 'bad' = 'bad';
     if (high !== undefined && low !== undefined) {
-      // Target is a range
       if (value >= low && value <= high) status = 'good';
       else if (value >= low * 0.9) status = 'warn';
       else status = 'bad';
     } else if (low !== undefined) {
-      // Target is a minimum
       if (value >= low) status = 'good';
       else if (value >= low * 0.9) status = 'warn';
       else status = 'bad';
     }
     const colors = {
-      good: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', icon: 'text-emerald-600' },
-      warn: { bg: 'bg-amber-50',   border: 'border-amber-200',   text: 'text-amber-700',   badge: 'bg-amber-100 text-amber-700',   icon: 'text-amber-600' },
-      bad:  { bg: 'bg-red-50',     border: 'border-red-200',     text: 'text-red-700',     badge: 'bg-red-100 text-red-700',       icon: 'text-red-600' },
+      good: { badge: 'bg-success-50 text-success-700', text: 'text-success-700', icon: 'text-success-600' },
+      warn: { badge: 'bg-warning-50 text-warning-700', text: 'text-warning-700', icon: 'text-warning-600' },
+      bad:  { badge: 'bg-danger-50 text-danger-700', text: 'text-danger-700', icon: 'text-danger-600' },
     }[status];
     return (
-      <motion.div variants={itemVariants} className={`card p-5 flex flex-col gap-2 ${colors.bg} ${colors.border}`}>
+      <motion.div variants={itemVariants} className="card p-4 sm:p-5 flex flex-col gap-2 shadow-xs">
         <div className="flex items-center justify-between">
-          <span className={`text-xs font-semibold uppercase tracking-wider ${colors.text} opacity-80`}>{label}</span>
-          <div className={`w-8 h-8 rounded-lg ${colors.badge} flex items-center justify-center`}>
-            <Icon size={16} className={colors.icon} />
+          <span className="text-xs font-semibold uppercase tracking-wider text-surface-500">{label}</span>
+          <div className={`w-7 h-7 rounded-lg ${colors.badge} flex items-center justify-center`}>
+            <Icon size={15} className={colors.icon} />
           </div>
         </div>
-        <p className={`text-3xl font-bold ${colors.text}`}>
+        <p className="text-2xl font-semibold text-surface-900">
           <AnimatedNumber value={value} decimals={decimals} suffix={suffix} />
         </p>
         {targetLabel && (
-          <p className={`text-xs ${colors.text} opacity-70`}>{targetLabel}</p>
+          <p className="text-xs text-surface-500">{targetLabel}</p>
         )}
       </motion.div>
     );
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto pb-12">
+    <div className="max-w-[1550px] mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
       {/* ─── PAGE HEADER ─── */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="page-header"
+        transition={{ duration: 0.4 }}
+        className="page-header mb-5"
       >
-        <h1 className="page-title">AHT & CPH Calculator</h1>
-        <p className="page-description">Calculate, visualize and export AHT, CPH, SLA, Occupancy and Utilization metrics.</p>
+        <h1 className="page-title text-2xl font-semibold text-surface-900">Data</h1>
+        <p className="page-description text-surface-500 text-xs sm:text-sm mt-0.5">Calculate, visualize and export AHT, CPH, SLA, Occupancy and Utilization metrics.</p>
       </motion.div>
 
       {/* ─── TOOLBAR ─── */}

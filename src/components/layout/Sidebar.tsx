@@ -1,4 +1,5 @@
-// Octopus Dashboard - Sidebar Navigation
+// Octopus Dashboard - Enterprise Sidebar Navigation
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Home,
@@ -9,12 +10,11 @@ import {
   Zap,
   Settings,
   ChevronLeft,
-  ChevronRight,
   Moon,
   Sun,
   Receipt,
   Network,
-  Upload
+  Upload,
 } from 'lucide-react';
 import type { TabId } from '@/types';
 import { useAppStore } from '@/stores/appStore';
@@ -34,7 +34,7 @@ const iconMap: Record<string, React.ElementType> = {
 
 interface NavSection {
   title: string;
-  items: { id: TabId; label: string; icon: string }[];
+  items: { id: TabId; label: string; icon: string; badge?: string }[];
 }
 
 const navSections: NavSection[] = [
@@ -71,113 +71,141 @@ export default function Sidebar() {
   const setActiveTab = useAppStore((s) => s.setActiveTab);
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
-  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const darkMode = useAppStore((s) => s.darkMode);
   const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [mobile, setMobile] = useState(isMobile);
+
+  useEffect(() => {
+    const onResize = () => setMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   return (
     <>
-      {/* Mobile Overlay */}
-      <div 
-        className={`md:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      {/* Mobile Overlay - only visible on mobile */}
+      <div
+        className={`md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-200 ${collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
         onClick={toggleSidebar}
       />
 
       <motion.aside
-        className={`fixed md:relative h-screen flex flex-col flex-shrink-0 bg-[#10104a] dark:bg-surface-0 border-r border-white/10 dark:border-surface-100 z-50 transition-transform duration-300 md:transition-none overflow-hidden ${collapsed ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}`}
+        className="fixed md:relative h-screen flex flex-col flex-shrink-0 bg-[#10104a] dark:bg-[#0b0e17] border-r border-white/10 dark:border-surface-100/50 z-50 overflow-hidden select-none shadow-xl"
         initial={false}
-        animate={{ width: collapsed ? 64 : 240 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
+        animate={mobile
+          ? { width: 256, x: collapsed ? -256 : 0 }   // mobile: slide in/out
+          : { width: collapsed ? 76 : 256, x: 0 }      // desktop: collapse width
+        }
+        transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
       >
-        <style>{`
-          @media (max-width: 767px) {
-            aside { width: 240px !important; }
-          }
-        `}</style>
-        {/* Header */}
-        <div className={`flex items-center h-16 border-b border-white/10 dark:border-surface-100 flex-shrink-0 transition-colors ${collapsed ? 'justify-center px-0 hidden md:flex' : 'justify-between px-4'}`}>
-        {!collapsed && (
-          <div className="flex items-center">
-            <img src="/octopus-logo.png" alt="Octopus" className="h-8 w-auto object-contain brightness-0 invert" />
-          </div>
-        )}
-        {collapsed && (
-          <button onClick={toggleSidebar} className="flex items-center justify-center p-2 w-full h-full hover:bg-[#1a1a6b] dark:hover:bg-surface-100/10 transition-colors cursor-pointer outline-none">
-            <img src="/octopus-header.png" alt="Octopus Icon" className="w-8 h-8 object-contain brightness-0 invert" />
-          </button>
-        )}
-        {!collapsed && (
-          <button
-            onClick={toggleSidebar}
-            className="w-6 h-6 rounded flex items-center justify-center text-brand-300 hover:text-white hover:bg-[#1a1a6b] dark:hover:bg-surface-100/10 transition-colors outline-none"
-          >
-            <ChevronLeft size={14} />
-          </button>
-        )}
-      </div>
 
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2 hide-scrollbar">
-        {navSections.map((section) => (
-          <div key={section.title} className="mb-3">
-            {!collapsed && (
-              <p className="text-2xs font-medium text-brand-400/60 px-3 mb-1">
-                {section.title}
-              </p>
-            )}
-            <div className="space-y-0.5">
-              {section.items.map((item) => {
-                const Icon = iconMap[item.icon] || Home;
-                const isActive = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`sidebar-nav-item w-full ${isActive ? 'active' : ''} ${collapsed ? 'justify-center px-0' : ''}`}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon className="nav-icon" size={18} />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
-                  </button>
-                );
-              })}
+        {/* Brand Header */}
+        <div className={`flex items-center h-[68px] border-b border-white/10 dark:border-surface-100/40 flex-shrink-0 px-4 transition-colors ${collapsed ? 'justify-center px-0' : 'justify-between'}`}>
+          {!collapsed ? (
+            <div className="flex items-center gap-2.5">
+              <img 
+                src="/octopus-logo.png" 
+                alt="Octopus" 
+                className="h-8 w-auto object-contain brightness-0 invert transition-all" 
+              />
             </div>
-          </div>
-        ))}
-      </nav>
+          ) : (
+            <button 
+              onClick={toggleSidebar} 
+              className="flex items-center justify-center p-2 rounded-xl cursor-pointer outline-none w-full h-full"
+              title="Expand Sidebar"
+            >
+              <img 
+                src="/octopus-header.png" 
+                alt="Octopus Icon" 
+                className="w-12 h-12 object-contain brightness-0 invert" 
+              />
+            </button>
+          )}
 
-      {/* Footer */}
-      <div className="px-2 py-2 border-t border-white/10 dark:border-surface-100 flex flex-col gap-1">
-        <button
-          onClick={toggleDarkMode}
-          className={`sidebar-nav-item w-full ${collapsed ? 'justify-center px-0' : ''}`}
-          title={collapsed ? 'Toggle Theme' : undefined}
-        >
-          {darkMode ? <Sun className="nav-icon" size={18} /> : <Moon className="nav-icon" size={18} />}
-          {!collapsed && <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`sidebar-nav-item w-full ${activeTab === 'settings' ? 'active' : ''} ${collapsed ? 'justify-center px-0' : ''}`}
-          title={collapsed ? 'Settings' : undefined}
-        >
-          <Settings className="nav-icon" size={18} />
-          {!collapsed && <span>Settings</span>}
-        </button>
-
-        {/* Creator Signature */}
-        <div className={`mt-4 mb-2 mx-2 pt-4 border-t border-white/10 flex flex-col items-center justify-center transition-all duration-300 ${collapsed ? 'opacity-0 h-0 overflow-hidden hidden' : 'opacity-100'}`}>
-          <span className="text-[10px] text-brand-300 font-medium uppercase tracking-widest mb-1 opacity-80">
-            Designed & Developed By
-          </span>
-          <span className="text-[14px] text-white font-bold tracking-tight">
-            Yousef Samir
-          </span>
+          {!collapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 dark:hover:bg-surface-100/30 transition-colors outline-none"
+              title="Collapse Sidebar"
+            >
+              <ChevronLeft size={16} />
+            </button>
+          )}
         </div>
-      </div>
-    </motion.aside>
+
+        {/* Navigation Groups */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-4 hide-scrollbar">
+          {navSections.map((section, index) => (
+            <div key={section.title} className={`space-y-1 ${index !== navSections.length - 1 ? 'pb-4 border-b border-white/10 dark:border-surface-100/20' : ''}`}>
+              {!collapsed && (
+                <p className="text-[10px] font-bold tracking-wider text-brand-300/60 dark:text-surface-400 uppercase px-3 py-1 mb-0.5">
+                  {section.title}
+                </p>
+              )}
+              
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = iconMap[item.icon] || Home;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium outline-none ${
+                        isActive
+                          ? 'bg-[#2b2b8c] dark:bg-brand-600 text-white font-semibold shadow-md'
+                          : 'text-white/80 dark:text-surface-300 hover:text-white hover:bg-white/10 dark:hover:bg-surface-100/30'
+                      } ${collapsed ? 'justify-center px-0 h-10' : ''}`}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      <Icon 
+                        className={`w-4 h-4 flex-shrink-0 ${
+                          isActive ? 'text-white' : 'text-white/70 dark:text-surface-400 group-hover:text-white'
+                        }`} 
+                      />
+
+                      {!collapsed && (
+                        <span className="truncate tracking-normal">
+                          {item.label}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Footer Actions */}
+        <div className="p-3 border-t border-white/10 dark:border-surface-100/40 flex flex-col gap-1.5 bg-black/10 dark:bg-black/30">
+          
+          <button
+            onClick={toggleDarkMode}
+            className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-white/80 dark:text-surface-300 hover:text-white hover:bg-white/10 dark:hover:bg-surface-100/30 outline-none ${collapsed ? 'justify-center px-0 h-10' : ''}`}
+            title={collapsed ? (darkMode ? 'Light Mode' : 'Dark Mode') : undefined}
+          >
+            {darkMode ? <Sun className="w-4 h-4 text-warning-400" /> : <Moon className="w-4 h-4 text-brand-300" />}
+            {!collapsed && <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium outline-none ${
+              activeTab === 'settings' 
+                ? 'bg-[#2b2b8c] dark:bg-brand-600 text-white font-semibold shadow-md' 
+                : 'text-white/80 dark:text-surface-300 hover:text-white hover:bg-white/10 dark:hover:bg-surface-100/30'
+            } ${collapsed ? 'justify-center px-0 h-10' : ''}`}
+            title={collapsed ? 'Settings' : undefined}
+          >
+            <Settings className="w-4 h-4 text-white/70 dark:text-surface-400" />
+            {!collapsed && <span>Settings</span>}
+          </button>
+        </div>
+      </motion.aside>
     </>
   );
 }
