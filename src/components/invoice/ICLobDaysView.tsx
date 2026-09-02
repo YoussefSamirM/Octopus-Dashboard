@@ -197,8 +197,8 @@ export default function ICLobDaysView({
                     <td className="px-2 py-3 font-semibold text-[13px] text-danger-600 dark:text-danger-400 border-b border-surface-200 tabular-nums">
                       {formatTimeSecs(dAbs)}
                     </td>{" "}
-                    <td className={`px-2 py-3 font-semibold text-[13px] border-b border-surface-200 tabular-nums ${schPerc >= 0 ? 'text-success-600' : 'text-danger-600'}`}>
-                      {schPerc >= 0 ? '+' : ''}{formatPerc(schPerc)}
+                    <td className="px-2 py-3 font-semibold text-[13px] text-surface-500 border-b border-surface-200 tabular-nums">
+                      {formatPerc(schPerc)}
                     </td>{" "}
                     <td className="px-2 py-3 font-semibold text-[13px] text-surface-900 dark:text-surface-100 border-b border-surface-200 tabular-nums">
                       {formatTimeSecs(dBill)}

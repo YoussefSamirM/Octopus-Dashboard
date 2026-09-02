@@ -738,14 +738,8 @@ export const useInvoiceStore = create<InvoiceState>()(
                   let hcRaw = absDataRaw[r+1] ? absDataRaw[r+1][c] : 0;
                   let absRaw = absDataRaw[r+3] ? absDataRaw[r+3][c] : 0;
                   
-                  // Ensure both HC and ABS are parsed using the same logic to preserve their ratio for ABS%
-                  let hcParsed = parseFloat(String(hcRaw)) || 0;
-                  if (hcParsed > 0 && hcParsed <= 1) hcParsed = hcParsed * 24 * 3600;
-                  else hcParsed = hcParsed * 3600;
-
-                  let absParsed = parseFloat(String(absRaw)) || 0;
-                  if (absParsed > 0 && absParsed <= 1) absParsed = absParsed * 24 * 3600;
-                  else absParsed = absParsed * 3600;
+                  let hcParsed = parseDurationSecs(hcRaw);
+                  let absParsed = parseDurationSecs(absRaw);
 
                   dailyAbsData[iso][matchedLob] = {
                       hc: hcParsed,
