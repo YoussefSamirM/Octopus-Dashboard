@@ -839,6 +839,9 @@ export const useInvoiceStore = create<InvoiceState>()(
             if (info) {
               dateTargets.forEach(dt => {
                 let lob = info.lobs[dt.iso];
+                if (!lob && Object.keys(info.lobs).length > 0) {
+                  lob = Object.values(info.lobs).reverse()[0] as string;
+                }
                 if (lob && dailyRawData[dt.iso] && dailyRawData[dt.iso][lob]) {
                   for (let k = 0; k <= 1410; k += 30) {
                     let intStartMs = new Date(dt.iso + "T00:00:00").getTime() + (k * 60 * 1000);
@@ -1093,6 +1096,9 @@ export const useInvoiceStore = create<InvoiceState>()(
                       if (b.iso === isoDate) {
                           let agentInfo = localAgentInfo[b.email];
                           let agentLob = agentInfo?.lobs?.[isoDate];
+                          if (!agentLob && agentInfo?.lobs && Object.keys(agentInfo.lobs).length > 0) {
+                              agentLob = Object.values(agentInfo.lobs).reverse()[0] as string;
+                          }
                           let matchesLob = (lob === 'Combined') || (agentLob === lob) || (!agentLob);
                           if (matchesLob) {
                               let overlapStart = Math.max(b.startMs, intStartMs);

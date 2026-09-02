@@ -43,7 +43,11 @@ export default function ICAgentDetailsView({
       osv: "-",
       lobs: {},
     };
-    let effLob = info.lobs[iso] || "Unknown LOB";
+    let effLob = info.lobs[iso];
+    if (!effLob && Object.keys(info.lobs).length > 0) {
+      effLob = Object.values(info.lobs).reverse()[0] as string;
+    }
+    effLob = effLob || "Unknown LOB";
     let isMatch = false;
     if (lobId === "ICView") {
       isMatch = effLob === "Combined" || effLob === "TPro";

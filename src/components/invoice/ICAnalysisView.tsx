@@ -63,7 +63,11 @@ export default function ICAnalysisView({
 
         const cleanEmail = String(log.email || '').toLowerCase().trim();
         const info = agentInfo[cleanEmail] || { hr: "-", name: cleanEmail, tl: "-", osv: "-", lobs: {} };
-        const effLob = info.lobs?.[iso] || "Unknown LOB";
+        let effLob = info.lobs?.[iso];
+        if (!effLob && info.lobs && Object.keys(info.lobs).length > 0) {
+          effLob = Object.values(info.lobs).reverse()[0] as string;
+        }
+        effLob = effLob || "Unknown LOB";
 
         let isMatch = false;
         if (lobId === "ICView") {
@@ -130,7 +134,11 @@ export default function ICAnalysisView({
         const key = `${cleanEmail}_${typeUpper}_${start}_${end}`;
 
         const info = agentInfo[cleanEmail] || agentInfo[u.email] || { hr: "-", name: u.name || cleanEmail, tl: "-", osv: "-", lobs: {} };
-        const effLob = info.lobs?.[iso] || "Unknown LOB";
+        let effLob = info.lobs?.[iso];
+        if (!effLob && info.lobs && Object.keys(info.lobs).length > 0) {
+          effLob = Object.values(info.lobs).reverse()[0] as string;
+        }
+        effLob = effLob || "Unknown LOB";
 
         let isMatch = false;
         if (lobId === "ICView") {
